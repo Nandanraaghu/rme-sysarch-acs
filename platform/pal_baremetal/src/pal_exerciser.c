@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2023, 2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2023, 2025-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -128,8 +128,8 @@ uint32_t pal_exerciser_set_param(EXERCISER_PARAM_TYPE Type, uint64_t Value1, uin
           return 0;
 
       case DMA_ATTRIBUTES:
-          pal_mmio_write(Base + DMA_BUS_ADDR,Value1);// wrting into the DMA Control Register 2
-          pal_mmio_write(Base + DMA_LEN,Value2);// writing into the DMA Control Register 3
+          pal_mmio_write64(Base + DMA_BUS_ADDR,Value1);// wrting into the DMA Control Register 2
+          pal_mmio_write64(Base + DMA_LEN,Value2);// writing into the DMA Control Register 3
           return 0;
 
       case P2P_ATTRIBUTES:
@@ -223,6 +223,25 @@ uint32_t pal_exerciser_set_param(EXERCISER_PARAM_TYPE Type, uint64_t Value1, uin
         Data = Data & (0 << 18);
         pal_mmio_write(Ecam + CapabilityOffset + DVSEC_CTRL +
                              pal_exerciser_get_pcie_config_offset(Bdf), Data);
+        return 0;
+
+      case EXERCISER_CXL_CMD_OP:
+        pal_mmio_write(Base + CXL_CMD_OP, (uint32_t)Value1);
+        print(ACS_PRINT_DEBUG, " CXL_CMD_OP write 0x%x", (uint32_t)Value1);
+        return 0;
+
+      case EXERCISER_CXL_CMD_ADDR:
+        pal_mmio_write(Base + CXL_CMD_ADDR_LO, (uint32_t)Value1);
+        pal_mmio_write(Base + CXL_CMD_ADDR_HI, (uint32_t)(Value1 >> 32));
+        return 0;
+
+      case EXERCISER_CXL_CMD_DATA0:
+        pal_mmio_write(Base + CXL_CMD_DATA0_LO, (uint32_t)Value1);
+        pal_mmio_write(Base + CXL_CMD_DATA0_HI, (uint32_t)(Value1 >> 32));
+        return 0;
+
+      case EXERCISER_SEC_SID:
+        pal_mmio_write(Base + SEC_SID_CTL, (uint32_t)(Value1 & 0x3u));
         return 0;
 
       default:
@@ -340,6 +359,10 @@ uint32_t pal_exerciser_get_param(EXERCISER_PARAM_TYPE Type, uint64_t *Value1, ui
       case ATS_RES_ATTRIBUTES:
           *Value1 = pal_mmio_read(Base + ATS_ADDR);
           return 0;
+      case EXERCISER_CXL_CMD_DATA0:
+          *Value1 = (uint64_t)pal_mmio_read(Base + CXL_CMD_DATA0_LO);
+          *Value1 |= ((uint64_t)pal_mmio_read(Base + CXL_CMD_DATA0_HI)) << 32;
+          return 0;
       default:
           return 1;
   }
@@ -454,6 +477,28 @@ uint32_t pal_exerciser_ops(EXERCISER_OPS Ops, uint64_t Param, uint32_t Bdf)
     case ATS_INV_CACHE:
         pal_mmio_write(Base + ATSCTL, ATS_INV);
         return 0;
+
+    case CXL_CMD_START:
+        {
+        uint32_t prev_status;
+
+        prev_status = pal_mmio_read(Base + CXL_CMD_STATUS);
+        print(ACS_PRINT_DEBUG, " CXL_CMD_START prev status 0x%x", prev_status);
+        pal_mmio_write(Base + CXL_CMD_CTRL, CXL_CMD_CTRL_GO);
+        print(ACS_PRINT_DEBUG, " CXL_CMD_CTRL write GO 0x%x", CXL_CMD_CTRL_GO);
+        for (uint32_t idx = 0u; idx < 10000u; ++idx)
+        {
+            data = pal_mmio_read(Base + CXL_CMD_STATUS);
+            if ((data & CXL_CMD_STATUS_DONE) != 0u)
+                return 0;
+            if ((data & CXL_CMD_STATUS_ERR) != 0u)
+            {
+                print(ACS_PRINT_DEBUG, " CXL_CMD_START error status 0x%x", data);
+                return 1;
+            }
+        }
+        return 1;
+        }
 
     case INJECT_ERROR:
         pal_exerciser_find_pcie_capability(DVSEC, Bdf, PCIE, &CapabilityOffset);

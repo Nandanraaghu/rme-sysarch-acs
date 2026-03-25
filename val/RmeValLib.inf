@@ -1,5 +1,5 @@
 ## @file
-#  Copyright (c) 2022, 2024, Arm Limited or its affiliates. All rights reserved.
+#  Copyright (c) 2022, 2024, 2026, Arm Limited or its affiliates. All rights reserved.
 #  SPDX-License-Identifier : Apache-2.0
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,6 +38,10 @@
   src/val_gic.c
   src/val_gic_support.c
   src/val_pcie.c
+  src/val_cxl.c
+  src/val_cda.c
+  src/val_spdm.c
+  src/val_tdisp.c
   src/val_iovirt.c
   src/val_smmu.c
   src/val_test_infra.c
@@ -59,11 +63,22 @@
   sys_arch_src/gic/v3/val_gic_v3_extended.c
   sys_arch_src/gic/v3/AArch64/v3_asm.S
   sys_arch_src/gic/v2/val_gic_v2.c
-  sys_arch_src/gic/its/val_gic_its.c
-  sys_arch_src/gic/its/val_gic_redistributor.c
+ sys_arch_src/gic/its/val_gic_its.c
+ sys_arch_src/gic/its/val_gic_redistributor.c
 
 [Packages]
   MdePkg/MdePkg.dec
 
+[LibraryClasses]
+  SpdmRequesterLib
+  SpdmCommonLib
+  SpdmSecuredMessageLib
+  SpdmTransportPciDoeLib
+  PciDoeRequesterLib
+  CxlIdeKmRequesterLib
+  CxlTspRequesterLib
+  PciTdispRequesterLib
+  RngLib
+
 [BuildOptions]
-  GCC:*_*_*_ASM_FLAGS  =  -march=armv8.2-a
+  GCC:*_*_*_ASM_FLAGS         = -march=armv8.2-a

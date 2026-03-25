@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2023-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2023-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -106,6 +106,84 @@ void
 val_map_shared_mem_el3(uint64_t shared_addr)
 {
   UserCallSMC(ARM_ACS_SMC_FID, RME_MAP_SHARED_MEM, shared_addr, 0, 0);
+}
+
+uint32_t
+val_cxl_root_port_ide_program_and_enable_el3(uint64_t bar0_base,
+                                              uint8_t stream_id,
+                                              uint8_t key_slot,
+                                              const CXL_IDE_KEY_BUFFER *rx_key,
+                                              const CXL_IDE_KEY_BUFFER *tx_key)
+{
+  if ((rx_key == NULL) || (tx_key == NULL))
+    return 1;
+
+  shared_data->arg0 = IDE_ENABLE;
+  shared_data->arg2 = bar0_base;
+  shared_data->arg3 = stream_id;
+  shared_data->arg4 = key_slot;
+  shared_data->arg5 = (uint64_t)rx_key;
+  shared_data->arg6 = (uint64_t)tx_key;
+  UserCallSMC(ARM_ACS_SMC_FID, EL3_IDE_KM, 0, 0, 0);
+  if (val_pe_get_index_mpid(val_pe_get_mpid()) != 0)
+      return shared_data->status_code ? 1 : 0;
+  if (shared_data->status_code != 0) {
+    val_print(ACS_PRINT_ERR, shared_data->error_msg, 0);
+    return 1;
+  }
+  else {
+    val_print(ACS_PRINT_INFO, " EL3: IDE_KM programming successful", 0);
+    return 0;
+  }
+}
+
+uint32_t
+val_cxl_root_port_ide_disable_el3(uint64_t bar0_base,
+                                   uint8_t stream_id,
+                                   uint8_t key_slot)
+{
+  shared_data->arg0 = IDE_DISABLE;
+  shared_data->arg2 = bar0_base;
+  shared_data->arg3 = stream_id;
+  shared_data->arg4 = key_slot;
+  shared_data->arg5 = 0;
+  shared_data->arg6 = 0;
+  UserCallSMC(ARM_ACS_SMC_FID, EL3_IDE_KM, 0, 0, 0);
+  if (val_pe_get_index_mpid(val_pe_get_mpid()) != 0)
+      return shared_data->status_code ? 1 : 0;
+  if (shared_data->status_code != 0) {
+    val_print(ACS_PRINT_ERR, shared_data->error_msg, 0);
+    return 1;
+  }
+  else {
+    val_print(ACS_PRINT_INFO, " EL3: IDE_KM disable successful", 0);
+    return 0;
+  }
+}
+
+uint32_t
+val_cxl_root_port_ide_get_base_el3(uint64_t bar0_base,
+                                    uint64_t *ide_km_base)
+{
+  if (ide_km_base == NULL)
+    return 1;
+
+  shared_data->arg0 = IDE_GET_BASE;
+  shared_data->arg2 = bar0_base;
+  shared_data->arg3 = 0;
+  shared_data->arg4 = 0;
+  shared_data->arg5 = 0;
+  shared_data->arg6 = 0;
+  UserCallSMC(ARM_ACS_SMC_FID, EL3_IDE_KM, 0, 0, 0);
+  if (val_pe_get_index_mpid(val_pe_get_mpid()) != 0)
+      return shared_data->status_code ? 1 : 0;
+  if (shared_data->status_code != 0) {
+    val_print(ACS_PRINT_ERR, shared_data->error_msg, 0);
+    return 1;
+  }
+
+  *ide_km_base = shared_data->arg2;
+  return 0;
 }
 
 /**
@@ -491,6 +569,27 @@ uint32_t val_smmu_rlm_map_el3(smmu_master_attributes_t *smmu_attr, pgt_descripto
   }
   else {
     val_print(ACS_PRINT_INFO, " EL3: SMMU_REALM page table added successfully", 0);
+    return 0;
+  }
+}
+
+/**
+ *  @brief  This API requests SMMU config/TLB invalidation after GPT updates.
+ *          Returns 1 on error, 0 on success.
+ *  @return 1 on error, 0 on success
+ */
+uint32_t val_smmu_gpt_invalidate_el3(smmu_master_attributes_t *smmu_attr)
+{
+  UserCallSMC(ARM_ACS_SMC_FID, SMMU_CONFIG_SERVICE, SMMU_RLM_GPT_INV,
+              (uint64_t)smmu_attr, 0);
+  if (val_pe_get_index_mpid(val_pe_get_mpid()) != 0)
+      return shared_data->status_code ? 1 : 0;
+  if (shared_data->status_code != 0) {
+    val_print(ACS_PRINT_ERR, shared_data->error_msg, shared_data->error_code);
+    return 1;
+  }
+  else {
+    val_print(ACS_PRINT_INFO, " EL3: SMMU config invalidated successfully", 0);
     return 0;
   }
 }

@@ -24,12 +24,28 @@ fi
 
 DSC_PATH=${RME_ACS_DSC:-ShellPkg/Application/rme-acs/uefi_app/RmeAcs.dsc}
 
-if [ "$1" == "ENABLE_OOB" ]; then
+BUILD_DEFINES=()
+TARGET_INF="ShellPkg/Application/rme-acs/uefi_app/RmeAcs.inf"
+
+for ARG in "$@"; do
+    case "${ARG}" in
+        ENABLE_OOB)
+            BUILD_DEFINES+=("-D" "ENABLE_OOB")
+            TARGET_INF="ShellPkg/Application/rme-acs/baremetal_app/RmeAcs.inf"
+            ;;
+        ENABLE_SPDM)
+            BUILD_DEFINES+=("-D" "ENABLE_SPDM=1")
+            ;;
+    esac
+done
+
+if [ "${TARGET_INF}" != "ShellPkg/Application/rme-acs/uefi_app/RmeAcs.inf" ]; then
     build -a AARCH64 -t GCC49 -p ${DSC_PATH} \
-            -m ShellPkg/Application/rme-acs/baremetal_app/RmeAcs.inf -D ENABLE_OOB
-    return 0;
+          -m ${TARGET_INF} \
+          "${BUILD_DEFINES[@]}"
+    return 0
 fi
 
-    build -a AARCH64 -t GCC49 -p ${DSC_PATH} -n 32 \
-        -m ShellPkg/Application/rme-acs/uefi_app/RmeAcs.inf
-
+build -a AARCH64 -t GCC49 -p ${DSC_PATH} -n 32 \
+      -m ${TARGET_INF} \
+      "${BUILD_DEFINES[@]}"

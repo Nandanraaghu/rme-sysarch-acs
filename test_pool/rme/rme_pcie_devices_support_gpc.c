@@ -260,11 +260,11 @@ payload (void)
     mem_desc->length = test_data_blk_size * NUM_PAS;
     mem_desc->attributes |= (PGT_STAGE1_AP_RW);
 
-    if (val_pgt_create(mem_desc, &pgt_desc)) {
+  if (val_pgt_create(mem_desc, &pgt_desc)) {
         val_print(ACS_PRINT_ERR,
                       " Unable to create page table with given attributes", 0);
             goto test_fail;
-    }
+      }
 
     /* Get memory attributes of the test buffer, we'll use the same attibutes to create
      * our own page table later.

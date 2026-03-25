@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,7 +48,9 @@
 #endif
 
 /* Generic helpers */
-#define VAL_EXTRACT_BITS(data, start, end) ((data >> start) & ((1ul << (end-start+1))-1))
+#define VAL_EXTRACT_BITS(data, start, end) \
+  (((uint64_t)(data) >> (start)) & \
+   (((end) - (start) + 1) >= 64 ? ~0ULL : ((1ULL << ((end) - (start) + 1)) - 1ULL)))
 #define get_max(a, b)   (((a) > (b))?(a):(b))
 #define BITFIELD_DECL(type, name, msb, lsb) \
     const uint32_t name##_SHIFT = lsb; \

@@ -36,7 +36,9 @@ payload(void)
   pe_index = val_pe_get_index_mpid(val_pe_get_mpid());
 
   table_entries = sizeof(bf_info_table)/sizeof(bf_info_table[0]);
-  ret = val_pcie_register_bitfields_check((void *)&bf_info_table, table_entries);
+  ret = val_pcie_register_bitfields_check((void *)&bf_info_table,
+                                          table_entries,
+                                          VAL_DVSEC_SELECT_RMEDA);
 
   if (ret)
       val_set_status(pe_index, "FAIL", 01);
@@ -65,4 +67,3 @@ da_dvsec_register_config_entry(void)
 
   return status;
 }
-

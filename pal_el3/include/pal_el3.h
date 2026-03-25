@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2023,2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2023, 2025-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,5 +25,21 @@ void pal_el3_enable_ns_encryption(void);
 void pal_el3_disable_ns_encryption(void);
 void pal_el3_prog_legacy_tz(int enable);
 void pal_el3_pas_filter_active_mode(int enable);
+
+typedef struct {
+  uint32_t key[8];
+  uint32_t iv[3];
+} CXL_IDE_KEY_BUFFER;
+
+uint32_t pal_cxl_root_port_ide_program_and_enable(uint64_t bar0_base,
+                                                   uint8_t stream_id,
+                                                   uint8_t key_slot,
+                                                   const CXL_IDE_KEY_BUFFER *rx_key,
+                                                   const CXL_IDE_KEY_BUFFER *tx_key);
+uint32_t pal_cxl_root_port_ide_disable(uint64_t bar0_base,
+                                        uint8_t stream_id,
+                                        uint8_t key_slot);
+uint32_t pal_cxl_root_port_ide_get_km_base(uint64_t bar0_base,
+                                            uint64_t *ide_km_base);
 
 #endif /* PAL_EL3_H */

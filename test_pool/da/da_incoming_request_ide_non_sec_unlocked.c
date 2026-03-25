@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -66,17 +66,6 @@ payload(void)
       bdf = val_exerciser_get_bdf(instance);
       val_print(ACS_PRINT_TEST, " Exerciser BDF - 0x%x", bdf);
 
-      /* Create a buffer of size TEST_DMA_SIZE in DRAM */
-      dram_buf_in_virt = val_memory_alloc_pages(TEST_DATA_NUM_PAGES);
-
-      /* Set the buffer to value 0 */
-      val_memory_set(dram_buf_in_virt, dma_len, 0);
-      dram_buf_in_virt2 = dram_buf_in_virt + dma_len;
-
-      /* Initialise the input buffer with test data */
-      val_memory_set(dram_buf_in_virt, dma_len, TEST_DATA);
-      val_data_cache_ops_by_va((uint64_t)dram_buf_in_virt, CLEAN_AND_INVALIDATE);
-
       /* Get the RootPort for the Exerciser */
       if (val_pcie_get_rootport(bdf, &rp_bdf))
           continue;
@@ -105,25 +94,33 @@ payload(void)
       {
           val_print(ACS_PRINT_ERR, " Failed to lock the device: 0x%lx", bdf);
           test_fail++;
+          /* Disable TDISP before moving to next instance */
+          val_pcie_disable_tdisp(rp_bdf);
           continue;
       }
+
+      /* Create a buffer of size TEST_DMA_SIZE in DRAM */
+      dram_buf_in_virt = val_memory_alloc_pages(TEST_DATA_NUM_PAGES);
+      if (dram_buf_in_virt == NULL) {
+          val_print(ACS_PRINT_ERR, " Buffer allocation failed for instance %4x", instance);
+          test_fail++;
+          goto instance_cleanup;
+      }
+
+      /* Set the buffer to value 0 */
+      val_memory_set(dram_buf_in_virt, dma_len, 0);
+      dram_buf_in_virt2 = dram_buf_in_virt + dma_len;
+
+      /* Initialise the input buffer with test data */
+      val_memory_set(dram_buf_in_virt, dma_len, TEST_DATA);
+      val_data_cache_ops_by_va((uint64_t)dram_buf_in_virt, CLEAN_AND_INVALIDATE);
 
       /* Perform DMA using exerciser from source to target buffer */
       val_exerciser_set_param(DMA_ATTRIBUTES, (uint64_t)dram_buf_in_virt, dma_len, instance);
-      if (val_exerciser_ops(START_DMA, EDMA_TO_DEVICE, instance))
-      {
-          val_print(ACS_PRINT_ERR, " DMA write failure to exerciser %4x", instance);
-          test_fail++;
-          continue;
-      }
+      val_exerciser_ops(START_DMA, EDMA_TO_DEVICE, instance);
 
       val_exerciser_set_param(DMA_ATTRIBUTES, (uint64_t)dram_buf_in_virt2, dma_len, instance);
-      if (val_exerciser_ops(START_DMA, EDMA_FROM_DEVICE, instance))
-      {
-          val_print(ACS_PRINT_ERR, " DMA write failure to exerciser %4x", instance);
-          test_fail++;
-          continue;
-      }
+      val_exerciser_ops(START_DMA, EDMA_FROM_DEVICE, instance);
 
       /* Check the src and dst buff values are not same indicating the request is rejected by RP */
       if (!(val_memory_compare(dram_buf_in_virt, dram_buf_in_virt2, dma_len)))
@@ -131,27 +128,21 @@ payload(void)
           val_print(ACS_PRINT_ERR,
                     " Incoming rqst not rejected when Str is not sec & lck inst %4x", instance);
           test_fail++;
-          continue;
+          goto instance_cleanup;
       }
 
-      val_memory_set(dram_buf_in_virt, dma_len * 2, 0);
-
-      /* Return the buffer to the heap manager */
-      val_memory_free_pages(dram_buf_in_virt, TEST_DATA_NUM_PAGES);
-  }
-
-
-  while (instance--)
-  {
-    bdf = val_exerciser_get_bdf(instance);
-    if (val_pcie_get_rootport(bdf, &rp_bdf))
-          continue;
-
-    val_print(ACS_PRINT_DEBUG, " Disabling TDISP for RP: 0x%x", rp_bdf);
-    val_pcie_disable_tdisp(rp_bdf);
-    val_print(ACS_PRINT_DEBUG, " Putting the device into unlockes state for bdf: 0x%x", bdf);
-    val_device_unlock(bdf);
-
+instance_cleanup:
+      /* Clear and free the buffer if allocated */
+      if (dram_buf_in_virt)
+      {
+        val_memory_set(dram_buf_in_virt, dma_len * 2, 0);
+        val_memory_free_pages(dram_buf_in_virt, TEST_DATA_NUM_PAGES);
+        dram_buf_in_virt = NULL;
+      }
+      /* Always unlock and disable TDISP after this instance */
+      val_device_unlock(bdf);
+      val_print(ACS_PRINT_DEBUG, " Disabling TDISP for RP: 0x%x", rp_bdf);
+      val_pcie_disable_tdisp(rp_bdf);
   }
 
   if (test_skip)

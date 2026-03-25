@@ -7,17 +7,18 @@ Description of each directory are as follows:
 
 &emsp; - **include**: Consists of the include files required for Baremetal RME ACS. \
 &emsp; - **src**: Source files consisting platform specific implementations some of which require user modification. \
-&emsp; - **FVP**: Contains platform configuration information. The details in this folder need to be modified w.r.t the platform
+&emsp; - **FVP**: Contains platform configuration information. The details in this folder need to be modified w.r.t the platform \
 
 ## Build Steps
 
 1. To compile Baremetal RME ACS, perform the following steps \
 &emsp; 1.1 cd rme-acs \
-&emsp; 1.2 export CROSS_COMPILE=<path_to_the_toolchain>/bin/aarch64-none-elf- \
-&emsp; 1.3 mkdir build \
-&emsp; 1.4 cd build \
-&emsp; 1.5 cmake ../ -G"Unix Makefiles" -DCROSS_COMPILE=$CROSS_COMPILE -DTARGET="Target platform" \
-&emsp; 1.6 make
+&emsp; 1.2 git submodule update --init \
+&emsp; 1.3 export CROSS_COMPILE=<path_to_the_toolchain>/bin/aarch64-none-elf- \
+&emsp; 1.4 mkdir build \
+&emsp; 1.5 cd build \
+&emsp; 1.6 cmake ../ -G"Unix Makefiles" -DCROSS_COMPILE=$CROSS_COMPILE -DTARGET="Target platform" \
+&emsp; 1.7 make
 
 Note: Reference Cmake file for RME ACS is present at [CMakeLists.txt](../../CMakeLists.txt).
 
@@ -28,9 +29,17 @@ CMake Command Line Options:
  -DARM_ARCH_MINOR = Arch minor version. Default value is 0.
  -DCROSS_COMPILE  = Cross compiler path
  -DTARGET         = Target platform. Should be same as folder under pal_baremetal. Defaults to "FVP".
+ -DENABLE_SPDM    = Build with libspdm and DOE/CXL requester helpers (ON/OFF). Default OFF.
+ -DACS_PRINT_LEVEL= ACS print verbosity (1..5). Default 3. 3 prints TEST/ALWAYS/WARN/ERR; 2 also enables DEBUG; 1 also enables INFO.
 ```
 
 On a successful build, *.bin, *.elf, *.img and debug binaries are generated at *build/output* directory. The output library files will be generated at *build/tools/cmake/* of the rme-acs directory.
+
+Logging control (bare‑metal)
+- ACS verbosity is set via `-DACS_PRINT_LEVEL` at configure time. The default is 3 (prints TEST/ALWAYS/WARN/ERR). Use 2 to include DEBUG, or 1 to include INFO.
+- libspdm logs follow the same knob: when `ACS_PRINT_LEVEL <= 2`, libspdm prints INFO + ERROR; otherwise it prints ERROR only.
+- For libspdm prerequisites and patching notes, see
+  [Libspdm integration](../../README.md#libspdm-integration).
 
 ## Running RME ACS with Bootwrapper on Base RevC
 
@@ -41,4 +50,4 @@ For more details on how to port the reference code to a specific platform and fo
 
 -----------------
 
-*Copyright (c) 2020-2022, 2025, Arm Limited and Contributors. All rights reserved.*
+*Copyright (c) 2020-2022, 2025-2026, Arm Limited and Contributors. All rights reserved.*

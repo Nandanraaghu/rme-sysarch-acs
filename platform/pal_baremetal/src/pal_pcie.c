@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2023, 2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2023, 2025-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -817,4 +817,47 @@ pal_pcie_bar_mem_read(uint32_t Bdf, uint64_t address, uint32_t *data)
   (void) Bdf;
   *data = pal_mmio_read(address);
   return 0;
+}
+
+typedef struct {
+  uint16_t segment;
+  uint8_t  bus;
+  uint8_t  device;
+  uint8_t  function;
+} pal_non_exposed_port_t;
+
+static const pal_non_exposed_port_t g_non_exposed_ports[] = {
+  /* Platform integrators add on-die root ports here. */
+};
+
+static const uint32_t g_non_exposed_port_count =
+  (uint32_t)(sizeof(g_non_exposed_ports) / sizeof(g_non_exposed_ports[0]));
+
+uint32_t
+pal_link_get_exposure(uint16_t segment,
+                      uint8_t bus,
+                      uint8_t device,
+                      uint8_t function,
+                      uint32_t *exposed)
+{
+  if (exposed == NULL)
+    return 1u;
+
+  *exposed = 1u;
+
+  for (uint32_t index = 0; index < g_non_exposed_port_count; ++index)
+  {
+    const pal_non_exposed_port_t *entry = &g_non_exposed_ports[index];
+
+    if ((entry->segment == segment) &&
+        (entry->bus == bus) &&
+        (entry->device == device) &&
+        (entry->function == function))
+    {
+      *exposed = 0u;
+      break;
+    }
+  }
+
+  return 0u;
 }

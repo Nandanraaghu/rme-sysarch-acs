@@ -1,5 +1,5 @@
 ## @file
-#  Copyright (c) 2022-2024, Arm Limited or its affiliates. All rights reserved.
+#  Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
 #  SPDX-License-Identifier : Apache-2.0
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +31,33 @@
 [Sources.AARCH64]
   ../
   RmeAcsMain.c
+  ../test_pool/cxl/cxl_rjsdvg_little_endian.c
+  ../test_pool/cxl/cxl_rplykv_rdfwkw_rme_cda_dvsec.c
+  ../test_pool/cxl/cxl_rgvrqc_host_port_coverage.c
+  ../test_pool/cxl/cxl_host_port_rmsd_write_protect.c
+  ../test_pool/cxl/cxl_rwpgjb_rmsd_write_protect_property.c
+  ../test_pool/cxl/cxl_rphcgc_rmsd_full_protect.c
+  ../test_pool/cxl/cxl_rfdvzc_tdisp_disable.c
+  ../test_pool/cxl/cxl_rphwmm_rme_cda_tsp.c
+  ../test_pool/cxl/cxl_rplcmc_type3_target_ckid.c
+  ../test_pool/cxl/cxl_rlqmcy_type3_host_mpe.c
+  ../test_pool/cxl/cxl_rhcqws_host_side_mpe.c
+  ../test_pool/cxl/cxl_rhmxtf_host_hdm_decoder.c
+  ../test_pool/cxl/cxl_rdhwnr_link_stream_lock.c
+  ../test_pool/cxl/cxl_rwyvcq_link_unlock_reject.c
+  ../test_pool/cxl/cxl_rgbgqx_ctc_link_ide.c
+  ../test_pool/cxl/cxl_rxwjnn_type3_link_ide.c
+  ../test_pool/cxl/cxl_rjxpzp_pas_ckid_mapping.c
+  ../test_pool/cxl/cxl_rptggp_cmo_to_cxl_mem.c
+  ../test_pool/cxl/cxl_rhhmvm_bisnp_pas_nonsecure.c
+  ../test_pool/cxl/cxl_rbytyv_root_port_pas_behavior.c
+  ../test_pool/cxl/cxl_rnycll_tdisp_disable_reject.c
+  ../test_pool/cxl/cxl_rgtvgz_tdisp_enable_link_gate.c
+  ../test_pool/cxl/cxl_rcnslj_type3_no_tsp.c
+  ../test_pool/cxl/cxl_rxqhng_rid_range_reject.c
+  ../test_pool/cxl/cxl_rkjypb_cache_disable.c
+  ../test_pool/cda/cda_rjzqcp_reset_transition.c
+  ../test_pool/cda/cda_rkrcwk_host_side_gpc.c
   ../test_pool/da/da_attribute_rmeda_ctl_registers.c
   ../test_pool/da/da_autonomous_rootport_request_ns_pas.c
   ../test_pool/da/da_ctl_regs_rmsd_write_protect_property.c
@@ -49,6 +76,7 @@
   ../test_pool/da/da_rootport_tdisp_disabled.c
   ../test_pool/da/da_rootport_write_protect_full_protect_property.c
   ../test_pool/da/da_selective_ide_register_property.c
+  ../test_pool/tdisp/tdisp_rfpymv_vdm_response_check.c
   ../test_pool/da/da_smmu_implementation.c
   ../test_pool/da/da_tee_io_capability.c
   ../test_pool/dpt/dpt_p2p_different_rootport_invalid.c
@@ -101,7 +129,7 @@
   ../test_pool/rme/rme_system_reset_propagation_to_all_pe.c
   ../test_pool/smmu/smmu_implements_rme.c
   ../test_pool/smmu/smmu_responds_to_gpt_tlb.c
-  
+
 
 [Packages]
   EmbeddedPkg/EmbeddedPkg.dec
@@ -119,6 +147,7 @@
   ShellCEntryLib
   UefiBootServicesTableLib
   UefiRuntimeServicesTableLib
+  SpdmRequesterLib
 
 [Protocols]
   gEfiAcpiTableProtocolGuid                     ## CONSUMES
@@ -132,4 +161,4 @@
   gEfiAcpiTableGuid
 
 [BuildOptions]
-  GCC:*_*_*_ASM_FLAGS  =  march=armv8.1-a
+  GCC:*_*_*_ASM_FLAGS         = march=armv8.1-a

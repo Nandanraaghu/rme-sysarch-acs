@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -65,9 +65,18 @@ typedef struct {
     EXERCISER_INFO_BLOCK    e_info[MAX_EXERCISER_CARDS];
 } EXERCISER_INFO_TABLE;
 
+typedef struct {
+    uint32_t                num_exerciser;
+    EXERCISER_INFO_BLOCK    e_info[MAX_EXERCISER_CARDS];
+} CXL_EXERCISER_INFO_TABLE;
+
 typedef enum {
     EXERCISER_NUM_CARDS = 0x1
 } EXERCISER_INFO_TYPE;
+
+typedef enum {
+    CXL_EXERCISER_NUM_CARDS = 0x1
+} CXL_EXERCISER_INFO_TYPE;
 
 typedef enum {
     CORR_RCVR_ERR = 0x0,
@@ -111,16 +120,25 @@ typedef struct {
 void val_exerciser_create_info_table(void);
 uint32_t val_exerciser_init(uint32_t instance);
 uint32_t val_exerciser_get_info(EXERCISER_INFO_TYPE type);
+uint32_t val_cxl_exerciser_get_info(CXL_EXERCISER_INFO_TYPE type);
 uint32_t val_exerciser_set_param(EXERCISER_PARAM_TYPE type, uint64_t value1,
                                  uint64_t value2, uint32_t instance);
 uint32_t val_exerciser_get_param(EXERCISER_PARAM_TYPE type, uint64_t *value1,
                                  uint64_t *value2, uint32_t instance);
+uint32_t val_exerciser_set_param_by_bdf(EXERCISER_PARAM_TYPE type, uint64_t value1,
+                                        uint64_t value2, uint32_t bdf);
+uint32_t val_exerciser_get_param_by_bdf(EXERCISER_PARAM_TYPE type, uint64_t *value1,
+                                        uint64_t *value2, uint32_t bdf);
 uint32_t val_exerciser_set_state(EXERCISER_STATE state, uint64_t *value, uint32_t instance);
 uint32_t val_exerciser_get_state(EXERCISER_STATE *state, uint32_t instance);
 uint32_t val_exerciser_ops(EXERCISER_OPS ops, uint64_t param, uint32_t instance);
+uint32_t val_exerciser_ops_by_bdf(EXERCISER_OPS ops, uint64_t param, uint32_t bdf);
 uint32_t val_exerciser_get_data(EXERCISER_DATA_TYPE type,
                                 exerciser_data_t *data, uint32_t instance);
 uint32_t val_exerciser_execute_tests(uint32_t level);
 uint32_t val_exerciser_get_bdf(uint32_t instance);
+uint32_t val_cxl_exerciser_get_bdf(uint32_t instance);
+uint32_t val_cxl_exerciser_get_instance_by_bdf(uint32_t bdf, uint32_t *instance);
+uint32_t val_exerciser_init_by_bdf(uint32_t bdf);
 uint32_t val_get_exerciser_err_info(EXERCISER_ERROR_CODE type);
 #endif

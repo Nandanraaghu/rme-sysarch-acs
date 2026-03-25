@@ -1,7 +1,7 @@
-From 10ff42acdcce37fbfcba1a81bad0e0d62ed388d1 Mon Sep 17 00:00:00 2001
+From 79c538cf513a5563da32edb6fdb27645ee9f53d0 Mon Sep 17 00:00:00 2001
 From: Shyamanth RH <shyamanth.rh@arm.com>
 Date: Mon, 8 Sep 2025 12:44:00 +0000
-Subject: [PATCH] rme-sysarch-acs-changes
+Subject: [PATCH 2/2] rme-sysarch-acs-changes
 
 Signed-off-by: Shyamanth RH <shyamanth.rh@arm.com>
 ---
@@ -9,11 +9,11 @@ Signed-off-by: Shyamanth RH <shyamanth.rh@arm.com>
  include/plat/arm/common/arm_def.h         | 13 ++++++++++---
  plat/arm/board/fvp/fvp_common.c           |  2 ++
  plat/arm/board/fvp/include/fvp_pas_def.h  |  4 ++--
- plat/arm/board/fvp/include/platform_def.h |  4 ++--
+ plat/arm/board/fvp/include/platform_def.h |  8 ++++----
  plat/arm/board/fvp/platform.mk            |  6 ++++++
  plat/arm/common/arm_common.mk             |  2 +-
  plat/arm/common/arm_sip_svc.c             |  2 +-
- 8 files changed, 32 insertions(+), 9 deletions(-)
+ 8 files changed, 34 insertions(+), 11 deletions(-)
 
 diff --git a/bl31/bl31.mk b/bl31/bl31.mk
 index e39091528..8a9cf387f 100644
@@ -96,7 +96,7 @@ index 6b9728618..e202f0540 100644
  #define	ARM_PAS_PCI_MEM_2		GPT_MAP_REGION_GRANULE(PLAT_ARM_PCI_MEM_2_BASE, \
  							       PLAT_ARM_PCI_MEM_2_SIZE, \
 diff --git a/plat/arm/board/fvp/include/platform_def.h b/plat/arm/board/fvp/include/platform_def.h
-index f412ec04c..22473b6fe 100644
+index f412ec04c..8391fed8c 100644
 --- a/plat/arm/board/fvp/include/platform_def.h
 +++ b/plat/arm/board/fvp/include/platform_def.h
 @@ -176,7 +176,7 @@
@@ -117,6 +117,17 @@ index f412ec04c..22473b6fe 100644
  #   elif DRTM_SUPPORT
  #    define MAX_XLAT_TABLES		8
  #   else
+@@ -500,8 +500,8 @@ FVP_TRUSTED_SRAM_SIZE == 512
+  * Physical and virtual address space limits for MMU in AARCH64 & AARCH32 modes
+  */
+ #ifdef __aarch64__
+-#define PLAT_PHY_ADDR_SPACE_SIZE	(1ULL << 36)
+-#define PLAT_VIRT_ADDR_SPACE_SIZE	(1ULL << 36)
++#define PLAT_PHY_ADDR_SPACE_SIZE	(1ULL << 42)
++#define PLAT_VIRT_ADDR_SPACE_SIZE	(1ULL << 42)
+ #else
+ #define PLAT_PHY_ADDR_SPACE_SIZE	(1ULL << 32)
+ #define PLAT_VIRT_ADDR_SPACE_SIZE	(1ULL << 32)
 diff --git a/plat/arm/board/fvp/platform.mk b/plat/arm/board/fvp/platform.mk
 index 8e8870c58..85ef6a1e0 100644
 --- a/plat/arm/board/fvp/platform.mk

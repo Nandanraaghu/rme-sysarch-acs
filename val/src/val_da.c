@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2024-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2024-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,10 @@
 #include "include/val_common.h"
 #include "include/val_pcie.h"
 #include "include/val_da.h"
+#include "include/val_spdm.h"
+#if ENABLE_SPDM
+#include "industry_standard/pci_tdisp.h"
+#endif
 
 #include "include/val_memory.h"
 #include "include/val_iovirt.h"
@@ -31,6 +35,208 @@
 #define TEST_DATA_2 0xcdcdcdcd
 
 REGISTER_INFO_TABLE  *g_register_info_table;
+
+#if ENABLE_SPDM
+
+/* Maintain a small registry of active SPDM sessions keyed by BDF. */
+typedef struct {
+  uint32_t             in_use;
+  uint32_t             bdf;
+  uint32_t             session_id;
+  val_spdm_context_t   ctx;
+} spdm_session_slot_t;
+
+#ifndef MAX_SPDM_SESSION_SLOTS
+#define MAX_SPDM_SESSION_SLOTS 8
+#endif
+
+static spdm_session_slot_t g_spdm_sessions[MAX_SPDM_SESSION_SLOTS];
+
+static spdm_session_slot_t *spdm_find_slot(uint32_t bdf)
+{
+  for (uint32_t i = 0; i < MAX_SPDM_SESSION_SLOTS; ++i) {
+    if (g_spdm_sessions[i].in_use && (g_spdm_sessions[i].bdf == bdf))
+      return &g_spdm_sessions[i];
+  }
+  return NULL;
+}
+
+static spdm_session_slot_t *spdm_alloc_slot(uint32_t bdf)
+{
+  spdm_session_slot_t *s = spdm_find_slot(bdf);
+  if (s)
+    return s;
+  for (uint32_t i = 0; i < MAX_SPDM_SESSION_SLOTS; ++i) {
+    if (!g_spdm_sessions[i].in_use) {
+      g_spdm_sessions[i].in_use = 1u;
+      g_spdm_sessions[i].bdf = bdf;
+      g_spdm_sessions[i].session_id = 0u;
+      /* ctx will be initialised when session is opened. */
+      return &g_spdm_sessions[i];
+    }
+  }
+  return NULL;
+}
+
+static void spdm_free_slot(spdm_session_slot_t *slot)
+{
+  if (!slot)
+    return;
+  slot->in_use = 0u;
+  slot->bdf = 0u;
+  slot->session_id = 0u;
+  /* ctx is left zeroed by deinit path */
+}
+#endif
+
+/**
+  @brief  Exercise Realm Management Secure Domain write-protect behaviour for a register.
+
+          The helper maps the target register into EL3 with each permitted PAS, attempts a
+          write of the provided value, checks whether the update is accepted or blocked, and
+          finally restores the original contents. Realm and Root PAS writes must succeed
+          while Non-secure and Secure PAS writes must be ignored.
+
+  @param  pa             Physical address of the register to be validated.
+  @param  new_value      Value to attempt writing during the check.
+  @param  original_value Known-good value used to restore the register and as reference.
+
+  @retval 0             All PAS checks behaved as expected.
+  @retval >0            Number of PAS contexts that violated the expected behaviour.
+**/
+uint32_t
+val_rmsd_write_protect_check(uint64_t pa,
+                             uint32_t new_value,
+                             uint32_t original_value)
+{
+  static const uint64_t pas_list[] = {ROOT_PAS, REALM_PAS, NONSECURE_PAS, SECURE_PAS};
+  uint32_t failures = 0u;
+  uint64_t attr;
+  uint64_t tg;
+  uint64_t pa_page;
+  uint64_t offset;
+
+  tg = val_get_min_tg();
+  pa_page = pa & ~(tg - 1u);
+  offset = pa - pa_page;
+  attr = LOWER_ATTRS(PGT_ENTRY_ACCESS | SHAREABLE_ATTR(OUTER_SHAREABLE) |
+                     GET_ATTR_INDEX(DEV_MEM_nGnRnE) | PGT_ENTRY_AP_RW);
+
+  for (uint32_t index = 0; index < (sizeof(pas_list) / sizeof(pas_list[0])); ++index)
+  {
+    uint64_t pas = pas_list[index];
+    uint64_t va = val_get_free_va(tg);
+
+    if (val_add_gpt_entry_el3(pa_page, GPT_ANY))
+    {
+      val_print(ACS_PRINT_ERR,
+                " Failed to add GPT entry for 0x%llx ",
+                pa_page);
+      failures++;
+      continue;
+    }
+
+    if (val_add_mmu_entry_el3(va, pa_page, attr | LOWER_ATTRS(PAS_ATTR(pas))))
+    {
+      val_print(ACS_PRINT_ERR,
+                " Failed to add MMU entry for 0x%llx ",
+                pa_page);
+      val_print(ACS_PRINT_ERR,
+                " with PAS 0x%llx",
+                pas);
+      failures++;
+      continue;
+    }
+
+    shared_data->num_access = 1;
+    shared_data->shared_data_access[0].addr = va + offset;
+    shared_data->shared_data_access[0].access_type = WRITE_DATA;
+    shared_data->shared_data_access[0].data = new_value;
+    if (val_pe_access_mut_el3())
+    {
+      val_print(ACS_PRINT_ERR,
+                " Failed to write register 0x%llx ",
+                pa);
+      val_print(ACS_PRINT_ERR,
+                " with PAS 0x%llx",
+                pas);
+      failures++;
+      continue;
+    }
+
+    shared_data->num_access = 1;
+    shared_data->shared_data_access[0].addr = va + offset;
+    shared_data->shared_data_access[0].access_type = READ_DATA;
+    if (val_pe_access_mut_el3())
+    {
+      val_print(ACS_PRINT_ERR,
+                " Failed to read register 0x%llx ",
+                pa);
+      val_print(ACS_PRINT_ERR,
+                " with PAS 0x%llx",
+                pas);
+      failures++;
+      continue;
+    }
+
+    uint32_t read_value = shared_data->shared_data_access[0].data;
+
+    if ((pas == REALM_PAS) || (pas == ROOT_PAS))
+    {
+      if (read_value == original_value)
+      {
+        val_print(ACS_PRINT_ERR,
+                  " Register 0x%llx not updated for RMSD write ",
+                  pa);
+        val_print(ACS_PRINT_ERR,
+                  " with PAS 0x%llx",
+                  pas);
+        failures++;
+      }
+    }
+    else
+    {
+      if (read_value != original_value)
+      {
+        val_print(ACS_PRINT_ERR,
+                  " Register 0x%llx updated for non-RMSD write ",
+                  pa);
+        val_print(ACS_PRINT_ERR,
+                  " with PAS 0x%llx",
+                  pas);
+        failures++;
+      }
+    }
+
+    shared_data->num_access = 1;
+    shared_data->shared_data_access[0].addr = va + offset;
+    shared_data->shared_data_access[0].access_type = WRITE_DATA;
+    shared_data->shared_data_access[0].data = original_value;
+    if (val_pe_access_mut_el3())
+    {
+      val_print(ACS_PRINT_ERR,
+                " Failed to restore register 0x%llx ",
+                pa);
+      val_print(ACS_PRINT_ERR,
+                " with PAS 0x%llx",
+                pas);
+      failures++;
+    }
+  }
+
+  return failures;
+}
+
+/**
+  @brief  Query whether the platform reports coherent DA support.
+
+  @return Non-zero when coherent DA is supported, otherwise 0.
+**/
+uint32_t
+val_is_coherent_da_supported(void)
+{
+  return pal_is_coherent_da_supported();
+}
 
 /**
   @brief   This API will execute all RME DA tests designated for a given compliance level
@@ -231,13 +437,214 @@ val_da_get_next_rid_values(uint32_t *current_base_offset,
 uint32_t
 val_device_lock(uint32_t bdf)
 {
+#if ENABLE_SPDM
+  spdm_session_slot_t                 *slot;
+  val_spdm_context_t                  *ctx;
+  uint32_t                             session_id = 0;
+  pci_tdisp_interface_id_t             interface_id;
+  pci_tdisp_requester_capabilities_t   req_caps;
+  pci_tdisp_responder_capabilities_t   rsp_caps;
+  pci_tdisp_lock_interface_param_t     lock_param;
+  uint8_t                              nonce[PCI_TDISP_START_INTERFACE_NONCE_SIZE];
+  uint32_t                             status;
+  uint8_t                              tdi_state;
+
+  /* Build interface ID from endpoint BDF */
+  interface_id.function_id = (uint32_t)PCIE_CREATE_BDF_PACKED(bdf);
+  interface_id.reserved    = 0ull;
+
+  slot = spdm_alloc_slot(bdf);
+  if (slot == NULL) {
+    val_print(ACS_PRINT_ERR, " SPDM: No free session slot for BDF: 0x%x", bdf);
+    return ACS_STATUS_ERR;
+  }
+
+  ctx = &slot->ctx;
+
+  status = val_spdm_session_open(bdf, ctx, &session_id);
+  if (status == ACS_STATUS_PASS) {
+    val_print(ACS_PRINT_INFO, " SPDM session_open PASS 0x%x", status);
+  } else if (status == ACS_STATUS_SKIP) {
+    val_print(ACS_PRINT_WARN, " SPDM session_open SKIP 0x%x", status);
+    return ACS_STATUS_ERR;
+  } else {
+    val_print(ACS_PRINT_ERR, " SPDM session_open ERR 0x%x", status);
+    return ACS_STATUS_ERR;
+  }
+
+  val_memory_set(&req_caps, sizeof(req_caps), 0);
+  val_memory_set(&rsp_caps, sizeof(rsp_caps), 0);
+  val_memory_set(&lock_param, sizeof(lock_param), 0);
+  val_memory_set(nonce, sizeof(nonce), 0);
+
+  status = val_spdm_send_pci_tdisp_get_version(ctx,
+                                               session_id,
+                                               &interface_id);
+  if (status == ACS_STATUS_PASS)
+    val_print(ACS_PRINT_INFO, " TDISP GET_VERSION PASS 0x%x", status);
+  else if (status == ACS_STATUS_SKIP) {
+    val_print(ACS_PRINT_WARN, " TDISP GET_VERSION SKIP 0x%x", status);
+    goto fallback_close;
+  } else {
+    val_print(ACS_PRINT_ERR, " TDISP GET_VERSION ERR 0x%x", status);
+    goto fallback_close;
+  }
+
+  status = val_spdm_send_pci_tdisp_get_capabilities(ctx,
+                                                   session_id,
+                                                   &interface_id,
+                                                   &req_caps,
+                                                   &rsp_caps);
+  if (status == ACS_STATUS_PASS)
+    val_print(ACS_PRINT_INFO, " TDISP GET_CAPS PASS 0x%x", status);
+  else if (status == ACS_STATUS_SKIP) {
+    val_print(ACS_PRINT_WARN, " TDISP GET_CAPS SKIP 0x%x", status);
+    goto fallback_close;
+  } else {
+    val_print(ACS_PRINT_ERR, " TDISP GET_CAPS ERR 0x%x", status);
+    goto fallback_close;
+  }
+
+  /* flags, reporting offset and P2P mask are zero */
+  lock_param.flags                 = 0;
+  lock_param.default_stream_id     = 0;
+  lock_param.reserved              = 0;
+  lock_param.mmio_reporting_offset = 0ull;
+  lock_param.bind_p2p_address_mask = 0ull;
+
+  status = val_spdm_send_pci_tdisp_lock_interface(ctx,
+                                                 session_id,
+                                                 &interface_id,
+                                                 &lock_param,
+                                                 nonce);
+  if (status == ACS_STATUS_PASS)
+    val_print(ACS_PRINT_INFO, " TDISP LOCK_IF PASS 0x%x", status);
+  else if (status == ACS_STATUS_SKIP) {
+    val_print(ACS_PRINT_WARN, " TDISP LOCK_IF SKIP 0x%x", status);
+    goto fallback_close;
+  } else {
+    val_print(ACS_PRINT_ERR, " TDISP LOCK_IF ERR 0x%x", status);
+    goto fallback_close;
+  }
+
+  /* Verify CONFIG_LOCKED then transition to RUN. */
+  status = val_spdm_send_pci_tdisp_get_interface_state(ctx,
+                                                      session_id,
+                                                      &interface_id,
+                                                      &tdi_state);
+  if (status == ACS_STATUS_PASS)
+    val_print(ACS_PRINT_INFO, " TDISP GET_STATE PASS 0x%x", status);
+  else if (status == ACS_STATUS_SKIP) {
+    val_print(ACS_PRINT_WARN, " TDISP GET_STATE SKIP 0x%x", status);
+    goto fallback_close;
+  } else {
+    val_print(ACS_PRINT_ERR, " TDISP GET_STATE ERR 0x%x", status);
+    goto fallback_close;
+  }
+
+  if (tdi_state != PCI_TDISP_INTERFACE_STATE_CONFIG_LOCKED)
+  {
+    val_print(ACS_PRINT_ERR, " TDISP state !CONFIG_LOCKED 0x%x", tdi_state);
+    goto fallback_close;
+  }
+
+  status = val_spdm_send_pci_tdisp_start_interface(ctx,
+                                                  session_id,
+                                                  &interface_id,
+                                                  nonce);
+  if (status == ACS_STATUS_PASS)
+    val_print(ACS_PRINT_INFO, " TDISP START_IF PASS 0x%x", status);
+  else if (status == ACS_STATUS_SKIP) {
+    val_print(ACS_PRINT_WARN, " TDISP START_IF SKIP 0x%x", status);
+    goto fallback_close;
+  } else {
+    val_print(ACS_PRINT_ERR, " TDISP START_IF ERR 0x%x", status);
+    goto fallback_close;
+  }
+
+  status = val_spdm_send_pci_tdisp_get_interface_state(ctx,
+                                                      session_id,
+                                                      &interface_id,
+                                                      &tdi_state);
+  if (status == ACS_STATUS_PASS)
+    val_print(ACS_PRINT_INFO, " TDISP GET_STATE PASS 0x%x", status);
+  else if (status == ACS_STATUS_SKIP) {
+    val_print(ACS_PRINT_WARN, " TDISP GET_STATE SKIP 0x%x", status);
+    goto fallback_close;
+  } else {
+    val_print(ACS_PRINT_ERR, " TDISP GET_STATE ERR 0x%x", status);
+    goto fallback_close;
+  }
+
+  if (tdi_state != PCI_TDISP_INTERFACE_STATE_RUN)
+  {
+    val_print(ACS_PRINT_ERR, " TDISP state !RUN 0x%x", tdi_state);
+    goto fallback_close;
+  }
+
+  /* Keep the SPDM session open until val_device_unlock(); remember handle. */
+  slot->session_id = session_id;
+  return ACS_STATUS_PASS;
+
+fallback_close:
+  status = val_spdm_session_close(ctx, session_id);
+  if (status == ACS_STATUS_PASS)
+    val_print(ACS_PRINT_INFO, " SPDM session_close PASS 0x%x", status);
+  else if (status == ACS_STATUS_SKIP)
+    val_print(ACS_PRINT_WARN, " SPDM session_close SKIP 0x%x", status);
+  else
+    val_print(ACS_PRINT_ERR, " SPDM session_close ERR 0x%x", status);
+
+  if (ctx)
+    val_spdm_context_deinit(ctx);
+
+  spdm_free_slot(slot);
+
+  return ACS_STATUS_ERR;
+#else
   return pal_device_lock(bdf);
+#endif
 }
 
 uint32_t
 val_device_unlock(uint32_t bdf)
 {
+#if ENABLE_SPDM
+  pci_tdisp_interface_id_t interface_id;
+  spdm_session_slot_t *slot = spdm_find_slot(bdf);
+  uint32_t status;
+
+  interface_id.function_id = (uint32_t)PCIE_CREATE_BDF_PACKED(bdf);
+  interface_id.reserved    = 0ull;
+
+  /* unlock: if no active session for this BDF, treat as success. */
+  if (slot == NULL)
+    return ACS_STATUS_PASS;
+
+  status = val_spdm_send_pci_tdisp_stop_interface(&slot->ctx,
+                                                  slot->session_id,
+                                                  &interface_id);
+  if (status == ACS_STATUS_PASS)
+    val_print(ACS_PRINT_INFO, " TDISP STOP_IF PASS 0x%x", status);
+  else if (status == ACS_STATUS_SKIP)
+    val_print(ACS_PRINT_WARN, " TDISP STOP_IF SKIP 0x%x", status);
+  else
+    val_print(ACS_PRINT_ERR,  " TDISP STOP_IF ERR 0x%x", status);
+
+  status = val_spdm_session_close(&slot->ctx, slot->session_id);
+  if (status == ACS_STATUS_PASS)
+    val_print(ACS_PRINT_INFO, " SPDM session_close PASS 0x%x", status);
+  else if (status == ACS_STATUS_SKIP)
+    val_print(ACS_PRINT_WARN, " SPDM session_close SKIP 0x%x", status);
+  else
+    val_print(ACS_PRINT_ERR,  " SPDM session_close ERR 0x%x", status);
+
+  val_spdm_context_deinit(&slot->ctx);
+  spdm_free_slot(slot);
+  return ACS_STATUS_PASS;
+#else
   return pal_device_unlock(bdf);
+#endif
 }
 
 uint32_t val_ide_set_sel_stream(uint32_t bdf, uint32_t str_cnt, uint32_t enable)
@@ -480,6 +887,91 @@ uint32_t val_ide_get_num_sel_str(uint32_t bdf, uint32_t *num_sel_str)
 
   /* Get the number of Selective IDE stream */
   *num_sel_str = ((reg_value & NUM_SEL_STR_MASK) >> NUM_SEL_STR_SHIFT) + 1;
+
+  return 0;
+}
+
+/**
+  @brief  Derive the number of IDE link streams advertised by a root port.
+
+          The helper locates the PCIe IDE extended capability, reads the capability register,
+          and returns the link stream count encoded in NUM_TC_SUPP.
+
+  @param  bdf                Segment/Bus/Device/Function identifier of the port.
+  @param  num_link_streams   Output parameter updated with the number of link streams.
+
+  @retval 0  Capability present and the count was returned successfully.
+  @retval 1  Capability missing, invalid arguments, or configuration read failure.
+**/
+uint32_t
+val_get_num_link_str(uint32_t bdf, uint32_t *num_link_streams)
+{
+  uint32_t ide_cap_base;
+  uint32_t reg_value;
+
+  if (num_link_streams == NULL)
+      return 1;
+
+  if (val_pcie_find_capability(bdf, PCIE_ECAP, ECID_IDE, &ide_cap_base) != PCIE_SUCCESS)
+  {
+      val_print(ACS_PRINT_ERR,
+                    " PCIe IDE Capability not present for BDF: 0x%x", bdf);
+      return 1;
+  }
+
+  val_pcie_read_cfg(bdf, ide_cap_base + IDE_CAP_REG, &reg_value);
+
+  *num_link_streams = ((reg_value & NUM_TC_SUPP_MASK) >> NUM_TC_SUPP_SHIFT) + 1;
+
+  return 0;
+}
+
+/**
+  @brief  Report the current state of a specific IDE link stream.
+
+          The function validates the requested index against the advertised link stream count,
+          walks to the stream's status register, and returns the STREAM_STATE_* field.
+
+  @param  bdf         Segment/Bus/Device/Function identifier of the port.
+  @param  link_index  Zero-based IDE link stream index to query.
+  @param  str_status  Output parameter receiving the current stream state value.
+
+  @retval 0  Stream state retrieved successfully.
+  @retval 1  Capability missing, index out of range, or configuration access error.
+**/
+uint32_t
+val_get_link_str_status(uint32_t bdf, uint32_t link_index, uint32_t *str_status)
+{
+  uint32_t ide_cap_base;
+  uint32_t reg_value;
+  uint32_t num_link_streams;
+
+  if (str_status == NULL)
+      return 1;
+
+  if (val_pcie_find_capability(bdf, PCIE_ECAP, ECID_IDE, &ide_cap_base) != PCIE_SUCCESS)
+  {
+      val_print(ACS_PRINT_ERR,
+                    " PCIe IDE Capability not present for BDF: 0x%x", bdf);
+      return 1;
+  }
+
+  val_pcie_read_cfg(bdf, ide_cap_base + IDE_CAP_REG, &reg_value);
+  num_link_streams = ((reg_value & NUM_TC_SUPP_MASK) >> NUM_TC_SUPP_SHIFT) + 1;
+
+  if (link_index >= num_link_streams)
+  {
+      val_print(ACS_PRINT_ERR, " Invalid Link IDE stream index %d", link_index);
+      val_print(ACS_PRINT_ERR, " BDF: 0x%x", bdf);
+      return 1;
+  }
+
+  ide_cap_base += IDE_CAP_REG_SIZE;
+  ide_cap_base += (link_index * LINK_IDE_BLK_SIZE);
+
+  val_pcie_read_cfg(bdf, ide_cap_base + LINK_IDE_STATUS_REG, &reg_value);
+
+  *str_status = reg_value & LINK_IDE_STATE_MASK;
 
   return 0;
 }

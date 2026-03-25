@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2024-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2024-2025, 2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -52,6 +52,7 @@ payload(void)
   uint32_t table_entries;
   uint32_t rp_bdf, ep_index, ep_bdf, index;
   pcie_cfgreg_bitfield_entry *bf_entry;
+  uint32_t ep_locked = 0;
 
   tbl_index = 0;
   pe_index = val_pe_get_index_mpid(val_pe_get_mpid());
@@ -159,17 +160,29 @@ payload(void)
               continue;
           }
 
+          ep_locked = 1;
+
           status = val_pcie_write_detect_bitfield_check(rp_bdf, (void *)bf_entry, count);
           if (status && (status != PCIE_CAP_NOT_FOUND))
           {
               val_print(ACS_PRINT_ERR, " Write detect failed for BDF: 0x%x", bdf);
               test_fail++;
-              continue;
+              /* Fall through to unlock before next iteration */
+          }
+
+          /* Unlock only if we actually locked */
+          if (ep_locked) {
+              val_device_unlock(ep_bdf);
+              ep_locked = 0;
           }
       }
-      /* Put the device back to unlocked state and disable TDISP in RP */
+
+      /* Disable TDISP in RP; ensure endpoint is not left locked */
+      if (ep_locked) {
+          val_device_unlock(ep_bdf);
+          ep_locked = 0;
+      }
       val_pcie_disable_tdisp(rp_bdf);
-      val_device_unlock(ep_bdf);
   }
 
   if (test_skip)

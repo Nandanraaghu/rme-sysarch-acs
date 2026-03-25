@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -218,6 +218,20 @@ void val_el3_access_mut(void)
           VERBOSE("Data stored in VA, 0x%lx is 0x%x\n",
                 shared_data->shared_data_access[acc_cnt].addr,
                 *(uint32_t *)shared_data->shared_data_access[acc_cnt].addr);
+          break;
+        case READ_DATA_BYTE:
+          data = *(volatile uint8_t *)shared_data->shared_data_access[acc_cnt].addr;
+          VERBOSE("The data returned from the address, 0x%lx is 0x%x\n",
+               shared_data->shared_data_access[acc_cnt].addr, (uint32_t)data);
+          shared_data->shared_data_access[acc_cnt].data = data;
+          break;
+        case WRITE_DATA_BYTE:
+          data = shared_data->shared_data_access[acc_cnt].data;
+          *(volatile uint8_t *)shared_data->shared_data_access[acc_cnt].addr =
+              (uint8_t)data;
+          VERBOSE("Data stored in VA, 0x%lx is 0x%x\n",
+                shared_data->shared_data_access[acc_cnt].addr,
+                *(uint8_t *)shared_data->shared_data_access[acc_cnt].addr);
           break;
         default:
           ERROR("INVALID TYPE OF ACCESS");

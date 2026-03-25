@@ -1,5 +1,5 @@
 ## @file
- # Copyright (c) 2025, Arm Limited or its affiliates. All rights reserved.
+# Copyright (c) 2025-2026, Arm Limited or its affiliates. All rights reserved.
  # SPDX-License-Identifier : Apache-2.0
  #
  # Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +32,12 @@
  "${VAL_DIR}/src/val_pe_infra.c"
  "${VAL_DIR}/src/val_gic.c"
  "${VAL_DIR}/src/val_gic_support.c"
+ "${VAL_DIR}/src/val_cxl.c"
+ "${VAL_DIR}/src/val_cda.c"
  "${VAL_DIR}/src/val_pcie.c"
+ "${VAL_DIR}/src/val_cxl.c"
+ "${VAL_DIR}/src/val_spdm.c"
+ "${VAL_DIR}/src/val_tdisp.c"
  "${VAL_DIR}/src/val_iovirt.c"
  "${VAL_DIR}/src/val_smmu.c"
  "${VAL_DIR}/src/val_test_infra.c"
@@ -56,8 +61,8 @@
  "${VAL_DIR}/sys_arch_src/gic/v3/AArch64/v3_asm.S"
  "${VAL_DIR}/sys_arch_src/gic/v2/val_gic_v2.c"
  "${VAL_DIR}/sys_arch_src/gic/its/val_gic_its.c"
- "${VAL_DIR}/sys_arch_src/gic/its/val_gic_redistributor.c"
- "${ROOT_DIR}/baremetal_app/RmeAcsMain.c"
+"${VAL_DIR}/sys_arch_src/gic/its/val_gic_redistributor.c"
+"${ROOT_DIR}/baremetal_app/RmeAcsMain.c"
 
 )
 
@@ -68,22 +73,69 @@ set(COMPILE_LIST ${COMPILE_LIST} PARENT_SCOPE)
 # Create VAL library
 add_library(${VAL_LIB} STATIC ${VAL_SRC})
 
-target_include_directories(${VAL_LIB} PRIVATE
- ${CMAKE_CURRENT_BINARY_DIR}
- ${ROOT_DIR}
- ${VAL_DIR}
- ${PAL_DIR}
- ${VAL_DIR}/include/
- ${VAL_DIR}/sys_arch_src/gic/
- ${VAL_DIR}/sys_arch_src/gic/its/
- ${VAL_DIR}/sys_arch_src/gic/v2/
- ${VAL_DIR}/sys_arch_src/gic/v3/
- ${VAL_DIR}/sys_arch_src/smmu_v3/
- ${ROOT_DIR}/baremetal_app/
- ${ROOT_DIR}/val_el3/
- ${PAL_DIR}/include/
- ${PAL_DIR}/${TARGET}/include/
- ${PAL_DIR}/src/AArch64/
+set(_val_private_includes
+  ${CMAKE_CURRENT_BINARY_DIR}
+  ${ROOT_DIR}
+  ${VAL_DIR}
+  ${PAL_DIR}
+  ${VAL_DIR}/include/
+  ${VAL_DIR}/sys_arch_src/gic/
+  ${VAL_DIR}/sys_arch_src/gic/its/
+  ${VAL_DIR}/sys_arch_src/gic/v2/
+  ${VAL_DIR}/sys_arch_src/gic/v3/
+  ${VAL_DIR}/sys_arch_src/smmu_v3/
+  ${ROOT_DIR}/baremetal_app/
+  ${ROOT_DIR}/val_el3/
+  ${PAL_DIR}/include/
+  ${PAL_DIR}/${TARGET}/include/
+  ${PAL_DIR}/src/AArch64/
+  ${ROOT_DIR}/tools/configs/
 )
 
+if(ENABLE_SPDM)
+  list(APPEND _val_private_includes
+    ${LIBSPDM_INCLUDE_DIR}
+    ${LIBSPDM_OS_STUB_INCLUDE_DIR}
+    ${SPDM_EMU_INCLUDE_DIR}
+  )
+endif()
+
+target_include_directories(${VAL_LIB} PRIVATE ${_val_private_includes})
+# Compose definitions so sources can detect whether SPDM support is present.
+target_compile_definitions(${VAL_LIB} PRIVATE ENABLE_SPDM=$<IF:$<BOOL:${ENABLE_SPDM}>,1,0>)
+
+# Propagate ACS print verbosity to VAL sources (used by bare-metal app).
+target_compile_definitions(${VAL_LIB} PRIVATE "ACS_PRINT_LEVEL=${ACS_PRINT_LEVEL}")
+
+if(ENABLE_SPDM)
+  target_compile_definitions(${VAL_LIB} PRIVATE ${_libspdm_config_define})
+endif()
+
 unset(VAL_SRC)
+
+if(ENABLE_SPDM)
+  target_link_libraries(${VAL_LIB} PRIVATE
+    spdm_requester_lib
+    spdm_common_lib
+    spdm_transport_pcidoe_lib
+    spdm_secured_message_lib
+    spdm_crypt_lib
+    spdm_crypt_ext_lib
+    cxl_ide_km_requester_lib
+    pci_doe_requester_lib
+    cxl_tsp_requester_lib
+    pci_tdisp_requester_lib
+    spdm_device_secret_lib_null
+    memlib
+    rnglib
+    malloclib
+    platform_lib_null
+    debuglib
+  )
+
+  target_link_libraries(${VAL_LIB} PRIVATE
+    cryptlib_mbedtls
+    mbedcrypto
+    mbedx509
+    mbedtls)
+endif()

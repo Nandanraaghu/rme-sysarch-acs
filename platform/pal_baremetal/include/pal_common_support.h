@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -91,7 +91,7 @@ void *mem_alloc(size_t alignment, size_t size);
       pal_uart_print(level, string, ##__VA_ARGS__);                     \
       /* Print file name and line number for ERR and WARN */            \
       if (level == ACS_PRINT_ERR || level == ACS_PRINT_WARN) {          \
-          pal_uart_print(level, "\n  [FILE: %a]", (uint64_t)FILENAME);           \
+          pal_uart_print(level, "\n  [FILE: %s]", (uint64_t)FILENAME);           \
           pal_uart_print(level, "  [LINE: %d]", __LINE__);                     \
       }                                                                 \
     }                                                                   \
@@ -425,6 +425,33 @@ typedef struct {
   PCIE_READ_BLOCK device[];
 } PCIE_READ_TABLE;
 
+/*
+ * CXL info definitions record per-host bridge component register windows
+ * alongside decoder counts and CFMWS metadata discovered from CEDT.
+ */
+#define CXL_MAX_CFMWS_WINDOWS  2u
+
+typedef struct {
+  uint32_t    uid;
+  uint32_t    component_reg_type;
+  uint64_t    component_reg_base;
+  uint64_t    component_reg_length;
+  uint32_t    hdm_decoder_count;
+  uint32_t    cfmws_count;
+  uint64_t    cfmws_base[CXL_MAX_CFMWS_WINDOWS];
+  uint64_t    cfmws_length[CXL_MAX_CFMWS_WINDOWS];
+} CXL_INFO_BLOCK;
+
+typedef struct {
+  uint32_t       num_entries;
+  CXL_INFO_BLOCK device[];
+} CXL_INFO_TABLE;
+
+typedef struct {
+  uint32_t key[8];
+  uint32_t iv[3];
+} CXL_IDE_KEY_BUFFER;
+
 typedef struct {
   uint32_t bdf;
   uint32_t rp_bdf;
@@ -602,7 +629,9 @@ typedef struct {
 
 #define IOVIRT_NEXT_BLOCK(b) (IOVIRT_BLOCK *)((uint8_t*)(&b->data_map[0]) + b->num_data_map * sizeof(NODE_DATA_MAP))
 #define ALIGN_MEMORY(b, bound) (IOVIRT_BLOCK *) (((uint64_t)b + bound - 1) & (~(bound - 1)))
-#define VAL_EXTRACT_BITS(data, start, end) ((data >> start) & ((1ul << (end-start+1))-1))
+#define VAL_EXTRACT_BITS(data, start, end) \
+  (((uint64_t)(data) >> (start)) & \
+   (((end) - (start) + 1) >= 64 ? ~0ULL : ((1ULL << ((end) - (start) + 1)) - 1ULL)))
 #define IOVIRT_CCA_MASK ~((uint32_t)0)
 
 /**
@@ -651,7 +680,11 @@ typedef enum {
     ERROR_INJECT_TYPE = 0xD,
     ENABLE_POISON_MODE = 0xE,
     ENABLE_RAS_CTRL = 0xF,
-    DISABLE_POISON_MODE = 0x10
+    DISABLE_POISON_MODE = 0x10,
+    EXERCISER_CXL_CMD_OP = 0x11,
+    EXERCISER_CXL_CMD_ADDR = 0x12,
+    EXERCISER_CXL_CMD_DATA0 = 0x13,
+    EXERCISER_SEC_SID = 0x14
 } EXERCISER_PARAM_TYPE;
 
 typedef enum {
@@ -676,8 +709,13 @@ typedef enum {
     STOP_TXN_MONITOR     = 0xc,
     ATS_TXN_REQ          = 0xd,
     INJECT_ERROR         = 0xe,
-    ATS_INV_CACHE        = 0xf
+    ATS_INV_CACHE        = 0xf,
+    CXL_CMD_START        = 0x10
 } EXERCISER_OPS;
+
+#define CXL_CMD_OP_BACKDOOR_READ64 0x1u
+#define CXL_CMD_OP_BISNP           0x2u
+#define CXL_CMD_OP_BACKDOOR_WRITE64 0x3u
 
 /* LibC functions declaration */
 

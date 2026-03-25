@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -454,6 +454,25 @@ createPcieVirtInfoTable()
 }
 
 EFI_STATUS
+createCxlInfoTable()
+{
+  UINT64* CxlInfoTable;
+  EFI_STATUS Status;
+
+  Status = gBS->AllocatePool(EfiBootServicesData, CXL_INFO_TBL_SZ, (VOID**)&CxlInfoTable);
+
+  if (EFI_ERROR(Status))
+  {
+    Print(L"\nAllocate Pool failed %x ", Status);
+    return Status;
+  }
+
+  val_cxl_create_info_table(CxlInfoTable);
+
+  return Status;
+}
+
+EFI_STATUS
 createPeripheralInfoTable()
 {
   UINT64* PeripheralInfoTable;
@@ -480,6 +499,7 @@ VOID freeRmeAcsMem()
   val_gic_free_info_table();
   val_timer_free_info_table();
   val_pcie_free_info_table();
+  val_cxl_free_info_table();
   val_iovirt_free_info_table();
   val_peripheral_free_info_table();
   val_free_shared_mem();
@@ -687,6 +707,10 @@ INTN EFIAPI ShellAppMainrme(IN UINTN Argc, IN CHAR16** Argv)
           g_enable_module |= (1 << 5);
         else if (StrCmp(next, L"ls") == 0)
           g_enable_module |= (1 << 6);
+        else if (StrCmp(next, L"cxl") == 0)
+          g_enable_module |= (1 << 7);
+        else if (StrCmp(next, L"tdisp") == 0)
+          g_enable_module |= (1u << TDISP_MODULE_ID);
 
         next = token + 1; // Move past the comma
       }
@@ -708,6 +732,10 @@ INTN EFIAPI ShellAppMainrme(IN UINTN Argc, IN CHAR16** Argv)
           g_enable_module |= (1 << 5);
         else if (StrCmp(next, L"ls") == 0)
           g_enable_module |= (1 << 6);
+        else if (StrCmp(next, L"cxl") == 0)
+          g_enable_module |= (1 << 7);
+        else if (StrCmp(next, L"tdisp") == 0)
+          g_enable_module |= (1u << TDISP_MODULE_ID);
       }
     }
     else
@@ -897,7 +925,7 @@ INTN EFIAPI ShellAppMainrme(IN UINTN Argc, IN CHAR16** Argv)
   g_rme_tests_fail        = 0;
 
   Print(L"\n\n RME Architecture Compliance Suite \n");
-  Print(L"    Version: Issue B.a ACS EAC   \n");
+  Print(L"    Version: Issue C.a ACS v0.5 ALPHA   \n");
 
   Print(L"\n Starting tests for (Print level is %2d)\n\n", g_print_level);
   // Show effective selection from INI/CLI to aid debugging
@@ -937,6 +965,7 @@ INTN EFIAPI ShellAppMainrme(IN UINTN Argc, IN CHAR16** Argv)
 
   createTimerInfoTable();
   createPeripheralInfoTable();
+  createCxlInfoTable();
   createPcieVirtInfoTable();
 
   val_allocate_shared_mem();
@@ -975,13 +1004,21 @@ INTN EFIAPI ShellAppMainrme(IN UINTN Argc, IN CHAR16** Argv)
 
   Status |= val_rme_mec_execute_tests(val_pe_get_num());
 
-print_test_status:
-  val_print(ACS_PRINT_ALWAYS, "\n------------------------------------------------------- \n", 0);
-  val_print(ACS_PRINT_ALWAYS, " Total Tests run  = %4d;", g_rme_tests_total);
-  val_print(ACS_PRINT_ALWAYS, " Tests Passed  = %4d", g_rme_tests_pass);
-  val_print(ACS_PRINT_ALWAYS, " Tests Failed = %4d\n", g_rme_tests_fail);
-  val_print(ACS_PRINT_ALWAYS, "--------------------------------------------------------- \n", 0);
+  Status |= val_rme_cxl_execute_tests(val_pe_get_num());
 
+  Status |= val_rme_cda_execute_tests(val_pe_get_num());
+
+  Status |= val_rme_tdisp_execute_tests(val_pe_get_num());
+
+
+print_test_status:
+  val_print(ACS_PRINT_ALWAYS,
+                       "\n -------------------------------------------------------------- \n", 0);
+  val_print(ACS_PRINT_ALWAYS, " Total Tests run  = %2d ;", g_rme_tests_total);
+  val_print(ACS_PRINT_ALWAYS, " Tests Passed  = %2d ;", g_rme_tests_pass);
+  val_print(ACS_PRINT_ALWAYS, " Tests Failed = %2d\n", g_rme_tests_fail);
+  val_print(ACS_PRINT_ALWAYS,
+                         " -------------------------------------------------------------- \n", 0);
   freeRmeAcsMem();
 
   if (g_rme_log_file_handle)

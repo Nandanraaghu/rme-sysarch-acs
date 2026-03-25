@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -323,6 +323,14 @@ payload(void)
           test_fail++;
           continue;
       }
+
+      if (val_add_gpt_entry_el3(bar_buf_in_phys, GPT_ANY))
+      {
+          val_print(ACS_PRINT_ERR,
+            " Failed to add GPT entry for PA 0x%llx", bar_buf_in_phys);
+          test_fail++;
+          continue;
+      }
       pgt_attr_el3 = LOWER_ATTRS(PGT_ENTRY_ACCESS | SHAREABLE_ATTR(OUTER_SHAREABLE)
                         | GET_ATTR_INDEX(DEV_MEM_nGnRnE) | PGT_ENTRY_AP_RW | PAS_ATTR(REALM_PAS));
 
@@ -387,6 +395,14 @@ payload(void)
                                      PCIE_EXTRACT_BDF_SEG(bdf),
                                      &device_id, &master.streamid,
                                      &its_id);
+      /* Invalidate SMMU GPT cache entries after GPT updates for this stream. */
+      if (val_smmu_gpt_invalidate_el3(&master))
+      {
+          val_print(ACS_PRINT_ERR, " Failed to invalidate SMMU GPT cache for stream 0x%lx",
+                    master.streamid);
+          test_fail++;
+          goto free_mem;
+      }
 
       /* Get the VTTBR_EL2 and VTCR_EL2, populate them if they aren't already */
       if (val_pe_get_vtcr(&pgt_desc.vtcr))
@@ -529,6 +545,24 @@ payload(void)
 free_mem:
       val_exerciser_ops(ATS_INV_CACHE, 0, instance);
 
+      /* Return EP to unlocked state (if not locked) */
+      val_device_unlock(bdf);
+
+      /* Per-iteration cleanup: disable ATS cache and TDISP for this EP/RP pair */
+      val_print(ACS_PRINT_DEBUG, " Disabling the ATS Cache for exerciser: 0x%x", bdf);
+      if (val_pcie_find_capability(bdf, PCIE_ECAP, ECID_ATS, &cap_base) == PCIE_SUCCESS)
+      {
+          val_pcie_read_cfg(bdf, cap_base + ATS_CTRL, &reg_value);
+          reg_value &= ATS_CACHING_DIS;
+          val_pcie_write_cfg(bdf, cap_base + ATS_CTRL, reg_value);
+      }
+
+      if (!val_pcie_get_rootport(bdf, &rp_bdf))
+      {
+          val_print(ACS_PRINT_DEBUG, " Disabling TDISP for RP: 0x%x", rp_bdf);
+          val_pcie_disable_tdisp(rp_bdf);
+      }
+
       /* Change the AccessPAS of the buffer to Realm PAS */
       pgt_attr_el3 = LOWER_ATTRS(PGT_ENTRY_ACCESS | SHAREABLE_ATTR(OUTER_SHAREABLE)
                      | GET_ATTR_INDEX(DEV_MEM_nGnRnE) | PGT_ENTRY_AP_RW | PAS_ATTR(NONSECURE_PAS));
@@ -565,28 +599,6 @@ free_mem:
       val_memory_free_pages(dram_buf_in_virt, TEST_DATA_NUM_PAGES);
   }
 
-  while (instance--)
-  {
-    bdf = val_exerciser_get_bdf(instance);
-
-    val_print(ACS_PRINT_DEBUG, " Disabling the ATS Cache for exerciser: 0x%x", bdf);
-    if (val_pcie_find_capability(bdf, PCIE_ECAP, ECID_ATS, &cap_base) == PCIE_SUCCESS)
-    {
-        val_pcie_read_cfg(bdf, cap_base + ATS_CTRL, &reg_value);
-        reg_value &= ATS_CACHING_DIS;
-        val_pcie_write_cfg(bdf, cap_base + ATS_CTRL, reg_value);
-    }
-
-    if (val_pcie_get_rootport(bdf, &rp_bdf))
-          continue;
-
-    val_print(ACS_PRINT_DEBUG, " Disabling TDISP for RP: 0x%x", rp_bdf);
-    val_pcie_disable_tdisp(rp_bdf);
-    val_print(ACS_PRINT_DEBUG, " Putting the device into unlockes state for bdf: 0x%x", bdf);
-    val_device_unlock(bdf);
-
-  }
-
   if (test_skip)
       val_set_status(pe_index, "SKIP", 01);
   else if (test_fail)
@@ -618,4 +630,3 @@ dpt_p2p_same_rootport_valid_entry(void)
 
   return  status;
 }
-

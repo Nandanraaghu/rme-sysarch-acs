@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -70,15 +70,8 @@
 
 #else
 #include "../../platform/pal_uefi/include/pal_override.h"
-  typedef INT8   int8_t;
-  typedef INT32  int32_t;
-  typedef CHAR8  char8_t;
-  typedef CHAR16 char16_t;
-  typedef UINT8  uint8_t;
-  typedef UINT16 uint16_t;
-  typedef UINT32 uint32_t;
-  typedef UINT64 uint64_t;
-  typedef UINT64 addr_t;
+#include "../../platform/pal_uefi/include/pal_stdint_uefi.h"
+#include "../../platform/pal_uefi/include/pal_stddef_uefi.h"
 
 #if PLATFORM_OVERRIDE_TIMEOUT
 #define TIMEOUT_LARGE  PLATFORM_OVERRIDE_TIMEOUT_LARGE
@@ -324,6 +317,35 @@ typedef struct {
   PCIE_INFO_BLOCK block[];
 } PCIE_INFO_TABLE;
 
+/*
+ * CXL info table definitions capture host bridge component register windows
+ * together with decoder counts and CFMWS metadata discovered via CEDT or overrides.
+ */
+#ifndef CXL_MAX_CFMWS_WINDOWS
+#define CXL_MAX_CFMWS_WINDOWS  2u
+#endif
+
+typedef struct {
+  uint32_t    uid;
+  uint32_t    component_reg_type;
+  uint64_t    component_reg_base;
+  uint64_t    component_reg_length;
+  uint32_t    hdm_decoder_count;
+  uint32_t    cfmws_count;
+  uint64_t    cfmws_base[CXL_MAX_CFMWS_WINDOWS];
+  uint64_t    cfmws_length[CXL_MAX_CFMWS_WINDOWS];
+} CXL_INFO_BLOCK;
+
+typedef struct {
+  uint32_t       num_entries;
+  CXL_INFO_BLOCK device[];
+} CXL_INFO_TABLE;
+
+typedef struct {
+  uint32_t key[8];
+  uint32_t iv[3];
+} CXL_IDE_KEY_BUFFER;
+
 void pal_pcie_enumerate(void);
 uint32_t pal_pcie_enumerate_device(uint32_t bus, uint32_t sec_bus);
 void pal_pcie_program_bar_reg(uint32_t bus, uint32_t dev, uint32_t func);
@@ -332,6 +354,9 @@ uint32_t pal_pci_cfg_read(uint32_t bus, uint32_t dev, uint32_t func, int offset,
 
 uint64_t pal_pcie_get_mcfg_ecam(void);
 void pal_pcie_create_info_table(PCIE_INFO_TABLE *PcieTable);
+void pal_cxl_create_info_table(CXL_INFO_TABLE *CxlTable);
+uint64_t pal_get_cedt_ptr(void);
+uint32_t pal_cxl_get_host_bridge_uid(uint32_t bdf, uint32_t *uid);
 uint32_t pal_pcie_io_read_cfg(uint32_t bdf, uint32_t offset, uint32_t *data);
 uint32_t pal_pcie_get_bdf_wrapper(uint32_t class_code, uint32_t start_bdf);
 void *pal_pci_bdf_to_dev(uint32_t bdf);
@@ -351,6 +376,21 @@ uint32_t pal_pcie_mem_get_offset(uint32_t type);
 
 uint32_t pal_pcie_bar_mem_read(uint32_t bdf, uint64_t address, uint32_t *data);
 uint32_t pal_pcie_bar_mem_write(uint32_t bdf, uint64_t address, uint32_t data);
+uint32_t pal_link_get_exposure(uint16_t segment,
+                               uint8_t bus,
+                               uint8_t device,
+                               uint8_t function,
+                               uint32_t *exposed);
+uint32_t pal_cxl_root_port_ide_program_and_enable(uint32_t rp_bdf,
+                                                  uint8_t stream_id,
+                                                  uint8_t key_slot,
+                                                  const CXL_IDE_KEY_BUFFER *rx_key,
+                                                  const CXL_IDE_KEY_BUFFER *tx_key);
+uint32_t pal_cxl_rp_is_not_subject_to_host_gpc(uint32_t rp_bdf);
+uint32_t pal_cxl_is_chi_c2c_supported(uint32_t bdf);
+uint32_t pal_cxl_root_port_ide_disable(uint32_t rp_bdf,
+                                       uint8_t stream_id,
+                                       uint8_t key_slot);
 /**
   @brief  Instance of SMMU INFO block
 **/
@@ -672,7 +712,11 @@ typedef enum {
   NUM_TRANSACTIONS   = 0xA,
   ADDRESS_ATTRIBUTES = 0xB,
   DATA_ATTRIBUTES    = 0xC,
-  ERROR_INJECT_TYPE  = 0xD
+  ERROR_INJECT_TYPE  = 0xD,
+  EXERCISER_CXL_CMD_OP   = 0x11,
+  EXERCISER_CXL_CMD_ADDR = 0x12,
+  EXERCISER_CXL_CMD_DATA0 = 0x13,
+  EXERCISER_SEC_SID = 0x14
 } EXERCISER_PARAM_TYPE;
 
 typedef enum {
@@ -710,8 +754,13 @@ typedef enum {
   STOP_TXN_MONITOR     = 0xc,
   ATS_TXN_REQ          = 0xd,
   INJECT_ERROR         = 0xe,
-  ATS_INV_CACHE        = 0xf
+  ATS_INV_CACHE        = 0xf,
+  CXL_CMD_START        = 0x10
 } EXERCISER_OPS;
+
+#define CXL_CMD_OP_BACKDOOR_READ64 0x1u
+#define CXL_CMD_OP_BISNP           0x2u
+#define CXL_CMD_OP_BACKDOOR_WRITE64 0x3u
 
 typedef enum {
   ACCESS_TYPE_RD = 0x0,
@@ -834,4 +883,5 @@ void pal_mem_region_create_info_table(MEM_REGN_INFO_TABLE *gpc_table,
 uint32_t pal_is_legacy_tz_enabled(void);
 uint32_t pal_is_ns_encryption_programmable(void);
 uint32_t pal_is_pas_filter_mode_programmable(void);
+uint32_t pal_is_coherent_da_supported(void);
 #endif /* __PAL_INTERFACE_H__ */

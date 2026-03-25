@@ -18,6 +18,8 @@
 #ifndef __RME_ACS_DA_H__
 #define __RME_ACS_DA_H__
 
+uint32_t val_is_coherent_da_supported(void);
+
 void val_da_get_addr_asso_block_base(uint32_t *num_sel_ide_stream_supp,
                          uint32_t *num_tc_supp,
                          uint32_t *current_base_offset,
@@ -46,6 +48,12 @@ uint32_t
 val_get_sel_str_status(uint32_t bdf, uint32_t str_cnt, uint32_t *str_status);
 
 uint32_t
+val_get_num_link_str(uint32_t bdf, uint32_t *num_link_streams);
+
+uint32_t
+val_get_link_str_status(uint32_t bdf, uint32_t link_index, uint32_t *str_status);
+
+uint32_t
 val_ide_program_rid_base_limit_valid(uint32_t bdf, uint32_t str_cnt,
                                      uint32_t base, uint32_t limit, uint32_t valid);
 
@@ -66,6 +74,11 @@ val_register_get_num_entries(void);
 
 uint32_t
 val_intercnt_sec_prpty_check(uint64_t *register_entry_info);
+
+uint32_t
+val_rmsd_write_protect_check(uint64_t pa,
+                             uint32_t new_value,
+                             uint32_t original_value);
 
 uint32_t da_dvsec_register_config_entry(void);
 uint32_t da_smmu_implementation_entry(void);

@@ -1,5 +1,5 @@
 /** @file
-  * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+  * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
   * SPDX-License-Identifier : Apache-2.0
 
   * Licensed under the Apache License, Version 2.0 (the "License");
@@ -729,27 +729,27 @@ uint32_t val_el3_realm_pgt_create(memory_region_descriptor_t *mem_desc, pgt_desc
 
     for (mem_desc_iter = mem_desc; mem_desc_iter->length != 0; ++mem_desc_iter)
     {
-        INFO("      val_pgt_create:i/p addr 0x%lx\n", mem_desc->virtual_address);
-        INFO("      val_pgt_create:o/p addr 0x%lx\n", mem_desc->physical_address);
-        INFO("      val_pgt_create:length 0x%lx\n\n ", mem_desc->length);
-        if ((mem_desc->virtual_address & (uint64_t)(pg_size - 1)) != 0 ||
-            (mem_desc->physical_address & (uint64_t)(pg_size - 1)) != 0)
+        INFO("      val_pgt_create:i/p addr 0x%lx\n", mem_desc_iter->virtual_address);
+        INFO("      val_pgt_create:o/p addr 0x%lx\n", mem_desc_iter->physical_address);
+        INFO("      val_pgt_create:length 0x%lx\n\n ", mem_desc_iter->length);
+        if ((mem_desc_iter->virtual_address & (uint64_t)(pg_size - 1)) != 0 ||
+            (mem_desc_iter->physical_address & (uint64_t)(pg_size - 1)) != 0)
             {
                 ERROR("      val_pgt_create: address alignment error\n");
                 return 1;
             }
 
-        if (mem_desc->physical_address >= (0x1ull << pgt_desc->oas))
+        if (mem_desc_iter->physical_address >= (0x1ull << pgt_desc->oas))
         {
             ERROR("      val_pgt_create: output address size error\n");
             return 1;
         }
 
-        if (mem_desc->virtual_address >= (0x1ull << pgt_desc->ias))
+        if (mem_desc_iter->virtual_address >= (0x1ull << pgt_desc->ias))
         {
             ERROR("      val_pgt_create: input address size error \
                             and truncating to %d-bits\n", pgt_desc->ias);
-            mem_desc->virtual_address &= ((0x1ull << pgt_desc->ias) - 1);
+            mem_desc_iter->virtual_address &= ((0x1ull << pgt_desc->ias) - 1);
         }
 
 #ifndef TARGET_BM_BOOT
@@ -762,14 +762,14 @@ uint32_t val_el3_realm_pgt_create(memory_region_descriptor_t *mem_desc, pgt_desc
             return 1;
         }
 #endif
-        tt_desc.input_base = mem_desc->virtual_address & ((0x1ull << pgt_desc->ias) - 1);
-        tt_desc.input_top = tt_desc.input_base + mem_desc->length - 1;
-        tt_desc.output_base = mem_desc->physical_address & ((0x1ull << pgt_desc->oas) - 1);
+        tt_desc.input_base = mem_desc_iter->virtual_address & ((0x1ull << pgt_desc->ias) - 1);
+        tt_desc.input_top = tt_desc.input_base + mem_desc_iter->length - 1;
+        tt_desc.output_base = mem_desc_iter->physical_address & ((0x1ull << pgt_desc->oas) - 1);
         tt_desc.level = 4 - num_pgt_levels;
         tt_desc.size_log2 = (num_pgt_levels - 1) * bits_p_level + page_size_log2;
         tt_desc.nbits = pgt_desc->ias - tt_desc.size_log2;
 
-        if (fill_translation_table(tt_desc, mem_desc))
+        if (fill_translation_table(tt_desc, mem_desc_iter))
         {
             val_el3_memory_free(tt_base);
             return 1;

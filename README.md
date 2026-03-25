@@ -18,8 +18,14 @@ This suite includes a set of examples of the invariant behaviors that are provid
 Most of the tests are executed from UEFI Shell by executing the RME UEFI shell application.
 
 ## Release details
-  - Code Quality: EAC
-  - The tests are written for version B.a of the Arm Realm Management Extension (RME) System Architecture.
+  - Code Quality:
+    - Issue A: EAC
+    - Issue B: EAC
+    - Issue C:
+      - CDA: ALPHA
+      - CXL: BETA
+      - TDISP: ALPHA
+  - The tests are written for version A.d, B.a and C.a of the Arm Realm Management Extension (RME) System Architecture.
   - The compliance suite is not a substitute for design verification.
 
 ## GitHub branch
@@ -37,9 +43,6 @@ Most of the tests are executed from UEFI Shell by executing the RME UEFI shell a
 ## Target platforms
   Any RME enabled ARM system platform.
 
-
-## ACS build steps - UEFI Shell application
-
 ### Prerequisites
     ACK test requires to execute the code at EL3 for GPT/MMU modification, so ensure that the following requirements are met.
 - When Non-secure EL2 executes 'smc' with SMC FID, 0xC2000060, EL3 Firmware is expected to branch to plat_arm_acs_smc_handler function which is predefined in ACK.
@@ -53,11 +56,13 @@ Most of the tests are executed from UEFI Shell by executing the RME UEFI shell a
 
 For more information, see [arm RME System ACS Validation Methodology document](Docs/Arm_RME_System_Architecture_Compliance_Suite_Validation_Methodology.pdf).
 
-    Before starting the ACS build, ensure that the following requirements are met.
+## ACS build steps - UEFI Shell application
+
+Before starting the ACS build, ensure that the following requirements are met.
 
 - Partner needs to provide their inputs to these following files...
    - platform/pal_baremetal/FVP/include/platform_override_fvp.h -> For Bare-metal platform,
-   - platform/pal_uefi/include/platform_overrride.h -> For UEFI platform.
+   - platform/pal_uefi/include/platform_overrride_fvp.h -> For UEFI platform.
 - Any mainstream Linux based OS distribution running on a x86 or aarch64 machine.
 - git clone --branch edk2-stable202505 --depth 1 https://github.com/tianocore/edk2
 - git clone https://github.com/tianocore/edk2-libc [ Checkout SHA: 61687168fe02ac4d933a36c9145fdd242ac424d1]
@@ -68,9 +73,11 @@ Note: The details of the packages are beyond the scope of this document.
 To start the ACS build, perform the following steps:
 
 1.  cd local_edk2_path
-2.  git clone https://github.com/tianocore/edk2-libc
 3.  git submodule update --init --recursive
 4.  git clone https://github.com/ARM-software/rme-sysarch-acs ShellPkg/Application/rme-acs
+5.  cd ShellPkg/Application/rme-acs
+6.  git submodule update --init
+7.  cd -
 
 ### Linux build environment
 If the build environment is Linux, perform the following steps:
@@ -79,7 +86,9 @@ If the build environment is Linux, perform the following steps:
 3.  source edksetup.sh
 4.  make -C BaseTools/Source/C
 5.  Change each "SBSA" string to "RME" string in MdePkg/Include/IndustryStandard/Acpi61.h using the command, ":%s/SBSA/RME/g"
-5.  source ShellPkg/Application/rme-acs/tools/scripts/acsbuild.sh
+6.  source ShellPkg/Application/rme-acs/tools/scripts/acsbuild.sh
+    - `acsbuild.sh` optionally takes `ENABLE_SPDM` flag, see
+      [Libspdm integration](#libspdm-integration).
 
 ### Build output
 
@@ -153,6 +162,22 @@ At startup, `Rme.efi` prints a concise [CFG] summary of applied platform values 
 - Modules(n): …
 - Tests(n): …
 - Skips(n): …
+
+Module selection notes:
+- Module names match the test name prefix before the first `_` (for example: `rme`, `gic`, `smmu`, `legacy`, `da`, `dpt`, `mec`, `cxl`, `cda`, `tdisp`).
+- Some PCIe and CXL tests depend on libspdm; see `Libspdm integration` below.
+
+### Libspdm integration
+
+- SPDM support in ACS is optional and is only required for PCIe and CXL tests that exercise
+  SPDM-based flows.
+- Build ACS with `ENABLE_SPDM=1` to enable running those tests.
+- A DOE/SPDM-capable device or emulation environment is required; otherwise the dependent
+  tests report `SKIP`.
+- When `ENABLE_SPDM=1` is set, apply
+  `tools/patches/aemfvp-a/spdm-emu/0001-fix-ignore-request-only-key_sub_stream-bits-in-CXL-I.patch`
+  in `ext/spdm-emu`.
+- Tests that do not depend on SPDM are unaffected when `ENABLE_SPDM` is not enabled.
 
 Runtime platform configuration (UEFI)
 - PAL reads platform values from the Parser‑installed runtime table/INI at runtime. Compile‑time defaults remain as fallback.
@@ -228,4 +253,4 @@ RME System ACS is distributed under Apache v2.0 License.
 
 --------------
 
-*Copyright (c) 2022-2025, Arm Limited and Contributors. All rights reserved.*
+*Copyright (c) 2022-2026, Arm Limited and Contributors. All rights reserved.*

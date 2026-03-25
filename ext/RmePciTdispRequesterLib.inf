@@ -1,0 +1,53 @@
+## @file
+#  Copyright (c) 2026, Arm Limited or its affiliates.
+#  SPDX-License-Identifier : Apache-2.0
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = RmePciTdispRequesterLib
+  FILE_GUID                      = 9C2D8A7E-9E67-4E74-8C4B-7ED84B1E0D1A
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = PciTdispRequesterLib
+
+[Sources]
+  spdm-emu/library/pci_tdisp_requester_lib/pci_tdisp_send_receive.c
+  spdm-emu/library/pci_tdisp_requester_lib/pci_tdisp_req_get_version.c
+  spdm-emu/library/pci_tdisp_requester_lib/pci_tdisp_req_get_capabilities.c
+  spdm-emu/library/pci_tdisp_requester_lib/pci_tdisp_req_get_interface_state.c
+  spdm-emu/library/pci_tdisp_requester_lib/pci_tdisp_req_get_interface_report.c
+  spdm-emu/library/pci_tdisp_requester_lib/pci_tdisp_req_lock_interface.c
+  spdm-emu/library/pci_tdisp_requester_lib/pci_tdisp_req_start_interface.c
+  spdm-emu/library/pci_tdisp_requester_lib/pci_tdisp_req_stop_interface.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  ShellPkg/Application/rme-acs/uefi_app/RmeAcs.dec
+  SecurityPkg/SecurityPkg.dec
+  CryptoPkg/CryptoPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  SpdmRequesterLib
+  SpdmTransportPciDoeLib
+  PciDoeRequesterLib
+
+[BuildOptions]
+  GCC:*_*_*_CC_FLAGS         = -I$(WORKSPACE)/ShellPkg/Application/rme-acs/ext/include -I$(WORKSPACE)/ShellPkg/Application/rme-acs/ext/libspdm/include -I$(WORKSPACE)/ShellPkg/Application/rme-acs/ext/spdm-emu/include
+  CLANGPDB:*_*_*_CC_FLAGS    = -I$(WORKSPACE)/ShellPkg/Application/rme-acs/ext/include -I$(WORKSPACE)/ShellPkg/Application/rme-acs/ext/libspdm/include -I$(WORKSPACE)/ShellPkg/Application/rme-acs/ext/spdm-emu/include
+  CLANGDWARF:*_*_*_CC_FLAGS  = -I$(WORKSPACE)/ShellPkg/Application/rme-acs/ext/include -I$(WORKSPACE)/ShellPkg/Application/rme-acs/ext/libspdm/include -I$(WORKSPACE)/ShellPkg/Application/rme-acs/ext/spdm-emu/include

@@ -1,0 +1,51 @@
+From 664a94cf946028dfe76353ccfb6602d1571ec489 Mon Sep 17 00:00:00 2001
+From: Shyamanth RH <shyamanth.rh@arm.com>
+Date: Tue, 17 Mar 2026 03:46:20 +0000
+Subject: [PATCH] fix: ignore request-only key_sub_stream bits in CXL IDE-KM
+ ACK checks
+
+Signed-off-by: Shyamanth RH <shyamanth.rh@arm.com>
+---
+ library/cxl_ide_km_requester_lib/cxl_ide_km_req_key_prog.c | 7 ++++++-
+ .../cxl_ide_km_requester_lib/cxl_ide_km_req_key_set_go.c   | 7 ++++++-
+ 2 files changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/library/cxl_ide_km_requester_lib/cxl_ide_km_req_key_prog.c b/library/cxl_ide_km_requester_lib/cxl_ide_km_req_key_prog.c
+index 17fb528..0ee553b 100644
+--- a/library/cxl_ide_km_requester_lib/cxl_ide_km_req_key_prog.c
++++ b/library/cxl_ide_km_requester_lib/cxl_ide_km_req_key_prog.c
+@@ -72,7 +72,12 @@ libspdm_return_t cxl_ide_km_key_prog(const void *pci_doe_context,
+     if (response.stream_id != request.stream_id) {
+         return LIBSPDM_STATUS_INVALID_MSG_FIELD;
+     }
+-    if (response.key_sub_stream != request.key_sub_stream) {
++    if ((response.key_sub_stream & CXL_IDE_KM_KEY_SUB_STREAM_MASK) !=
++        (request.key_sub_stream & CXL_IDE_KM_KEY_SUB_STREAM_MASK)) {
++        return LIBSPDM_STATUS_INVALID_MSG_FIELD;
++    }
++    if ((response.key_sub_stream & CXL_IDE_KM_KEY_DIRECTION_MASK) !=
++        (request.key_sub_stream & CXL_IDE_KM_KEY_DIRECTION_MASK)) {
+         return LIBSPDM_STATUS_INVALID_MSG_FIELD;
+     }
+     if (response.port_index != request.port_index) {
+diff --git a/library/cxl_ide_km_requester_lib/cxl_ide_km_req_key_set_go.c b/library/cxl_ide_km_requester_lib/cxl_ide_km_req_key_set_go.c
+index c3ad108..c17729c 100644
+--- a/library/cxl_ide_km_requester_lib/cxl_ide_km_req_key_set_go.c
++++ b/library/cxl_ide_km_requester_lib/cxl_ide_km_req_key_set_go.c
+@@ -56,7 +56,12 @@ libspdm_return_t cxl_ide_km_key_set_go(const void *pci_doe_context,
+     if (response.stream_id != request.stream_id) {
+         return LIBSPDM_STATUS_INVALID_MSG_FIELD;
+     }
+-    if (response.key_sub_stream != request.key_sub_stream) {
++    if ((response.key_sub_stream & CXL_IDE_KM_KEY_SUB_STREAM_MASK) !=
++        (request.key_sub_stream & CXL_IDE_KM_KEY_SUB_STREAM_MASK)) {
++        return LIBSPDM_STATUS_INVALID_MSG_FIELD;
++    }
++    if ((response.key_sub_stream & CXL_IDE_KM_KEY_DIRECTION_MASK) !=
++        (request.key_sub_stream & CXL_IDE_KM_KEY_DIRECTION_MASK)) {
+         return LIBSPDM_STATUS_INVALID_MSG_FIELD;
+     }
+     if (response.port_index != request.port_index) {
+-- 
+2.43.0
+

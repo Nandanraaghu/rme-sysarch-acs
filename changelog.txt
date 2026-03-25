@@ -1,4 +1,16 @@
-vB.a_EAC_26.06
+vC.a_CXL.BETA_CDA_TDISP.ALPHA_26.03
+
+Test Updates:
+* Added Issue vC.a compliance coverage for CDA, CXL, and TDISP
+* Added CXL tests for DVSEC checks, host-port protection, link lock, RID range, IDE, and TSP flows
+* Added CDA tests for reset/power-transition cleanup of IDE/TSP state and host-side GPC enforcement on DCM access.
+* Added TDISP test to check Arm VDM response flow
+Infrastructure Enhancements
+* Extended VAL/PAL and build support for CXL/CDA/TDISP, with libspdm,spdm-emu integration
+* Updated docs, platform configs, and release artifacts.
+
+
+vB.a_EAC_25.06
 
 Test Updates:
 * Added new test cases to validate Device Permission Table (DPT) checks for various PCIe access scenarios

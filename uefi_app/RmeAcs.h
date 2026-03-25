@@ -31,6 +31,7 @@
   #define IOVIRT_INFO_TBL_SZ     32768/*Supports maximum 240 nodes of a typical iort table*/
   #define PERIPHERAL_INFO_TBL_SZ 1024 /*Supports maximum 20 PCIe EPs (USB and SATA controllers only) */
   #define PCIE_INFO_TBL_SZ       512  /*Supports maximum 20 RC's*/
+  #define CXL_INFO_TBL_SZ        512  /*Supports maximum CXL host bridges*/
   #define REGISTER_INFO_TBL_SZ   512  /*Supports maximum 128 register regions */
   #define MEM_GPC_REGION_TBL_SZ  19200 /* Supports maximum of 800 entries, Not fixed */
   #define MEM_PAS_REGION_TBL_SZ  19200 /* Supports maximum of 800 entries, Not fixed */

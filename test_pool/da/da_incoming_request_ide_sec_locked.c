@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2024-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2024-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -124,7 +124,7 @@ payload(void)
           continue;
       }
 
-      /* Enable RMEDA_CTL1.TDISP_EN*/
+      /* Now enable RMEDA_CTL1.TDISP_EN */
       if (val_pcie_enable_tdisp(rp_bdf))
       {
           val_print(ACS_PRINT_ERR, " Unable to set tdisp_en for BDF: 0x%x", rp_bdf);
@@ -207,6 +207,8 @@ payload(void)
       {
           val_print(ACS_PRINT_ERR, " Failed to lock the device: 0x%lx", bdf);
           test_fail++;
+          /* TDISP was enabled just before; disable it before moving on. */
+          val_pcie_disable_tdisp(rp_bdf);
           continue;
       }
 
@@ -280,6 +282,14 @@ payload(void)
                                      PCIE_EXTRACT_BDF_SEG(bdf),
                                      &device_id, &master.streamid,
                                      &its_id);
+      /* Invalidate SMMU GPT cache entries after GPT updates for this stream. */
+      if (val_smmu_gpt_invalidate_el3(&master))
+      {
+          val_print(ACS_PRINT_ERR, " Failed to invalidate SMMU GPT cache for stream 0x%lx",
+                    master.streamid);
+          test_fail++;
+          goto free_mem;
+      }
 
       /* Get the VTTBR_EL2 and VTCR_EL2, populate them if they aren't already */
       if (val_pe_get_vtcr(&pgt_desc.vtcr))
@@ -351,6 +361,7 @@ payload(void)
           test_fail++;
           goto free_mem;
       }
+
 free_mem:
       pgt_attr_el3 = LOWER_ATTRS(PGT_ENTRY_ACCESS | SHAREABLE_ATTR(OUTER_SHAREABLE)
                      | GET_ATTR_INDEX(DEV_MEM_nGnRnE) | PGT_ENTRY_AP_RW | PAS_ATTR(NONSECURE_PAS));
@@ -374,19 +385,11 @@ free_mem:
 
       /* Return the buffer to the heap manager */
       val_memory_free_pages(dram_buf_in_virt, TEST_DATA_NUM_PAGES);
-  }
 
-  while (instance--)
-  {
-    bdf = val_exerciser_get_bdf(instance);
-    if (val_pcie_get_rootport(bdf, &rp_bdf))
-          continue;
-
-    val_print(ACS_PRINT_DEBUG, " Disabling TDISP for RP: 0x%x", rp_bdf);
-    val_pcie_disable_tdisp(rp_bdf);
-    val_print(ACS_PRINT_DEBUG, " Putting the device into unlockes state for bdf: 0x%x", bdf);
-    val_device_unlock(bdf);
-
+      /* Per-instance cleanup: unlock device and disable TDISP */
+      val_device_unlock(bdf);
+      val_print(ACS_PRINT_DEBUG, " Disabling TDISP for RP: 0x%x", rp_bdf);
+      val_pcie_disable_tdisp(rp_bdf);
   }
 
   if (test_skip)

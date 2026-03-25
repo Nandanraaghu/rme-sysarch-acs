@@ -1,5 +1,5 @@
 /** @file
-  * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+  * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
   * SPDX-License-Identifier : Apache-2.0
 
   * Licensed under the Apache License, Version 2.0 (the "License");
@@ -87,6 +87,52 @@ void plat_arm_acs_smc_handler(uint64_t services, uint64_t arg0, uint64_t arg1, u
     case RME_ACCESS_MUT:
       INFO("RME MEMORY ACCESS SERVICE\n");
       val_el3_access_mut();
+      break;
+    case EL3_IDE_KM:
+      INFO("EL3 IDE_KM service \n");
+      if (shared_data->arg0 == IDE_ENABLE) {
+        if (val_el3_ide_km_program_and_enable(shared_data->arg2,
+                                              (uint8_t)shared_data->arg3,
+                                              (uint8_t)shared_data->arg4,
+                                              (const CXL_IDE_KEY_BUFFER *)
+                                              shared_data->arg5,
+                                              (const CXL_IDE_KEY_BUFFER *)
+                                              shared_data->arg6) != 0u) {
+          shared_data->status_code = 1;
+          const char *msg = "EL3: IDE_KM enable failed";
+          int i = 0; while (msg[i] && i < sizeof(shared_data->error_msg) - 1) {
+              shared_data->error_msg[i] = msg[i]; i++;
+          }
+          shared_data->error_msg[i] = '\0';
+        }
+      } else if (shared_data->arg0 == IDE_DISABLE) {
+        if (val_el3_ide_km_disable(shared_data->arg2,
+                                   (uint8_t)shared_data->arg3,
+                                   (uint8_t)shared_data->arg4) != 0u) {
+          shared_data->status_code = 1;
+          const char *msg = "EL3: IDE_KM disable failed";
+          int i = 0; while (msg[i] && i < sizeof(shared_data->error_msg) - 1) {
+              shared_data->error_msg[i] = msg[i]; i++;
+          }
+          shared_data->error_msg[i] = '\0';
+        }
+      } else if (shared_data->arg0 == IDE_GET_BASE) {
+        if (val_el3_ide_km_get_base(shared_data->arg2, &shared_data->arg2) != 0u) {
+          shared_data->status_code = 1;
+          const char *msg = "EL3: IDE_KM base query failed";
+          int i = 0; while (msg[i] && i < sizeof(shared_data->error_msg) - 1) {
+              shared_data->error_msg[i] = msg[i]; i++;
+          }
+          shared_data->error_msg[i] = '\0';
+        }
+      } else {
+        shared_data->status_code = 1;
+        const char *msg = "EL3: IDE_KM invalid subservice";
+        int i = 0; while (msg[i] && i < sizeof(shared_data->error_msg) - 1) {
+            shared_data->error_msg[i] = msg[i]; i++;
+        }
+        shared_data->error_msg[i] = '\0';
+      }
       break;
     case RME_DATA_CACHE_OPS:
       INFO("RME data cache maintenance operation service \n");

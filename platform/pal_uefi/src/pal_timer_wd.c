@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2023, 2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2023, 2025-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -124,7 +124,7 @@ pal_timer_create_info_table(TIMER_INFO_TABLE *TimerTable)
       GtEntry++;
     }
 
-    if (Entry->Type == EFI_ACPI_6_1_GTDT_RME_GENERIC_WATCHDOG) {
+    if (Entry->Type == EFI_ACPI_6_4_GTDT_ARM_GENERIC_WATCHDOG) {
       //This is a Watchdog entry. Skip.. added in a separate function.
     }
 

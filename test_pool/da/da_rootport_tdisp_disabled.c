@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2024-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2024-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -51,6 +51,9 @@ payload(void)
   uint64_t Bar_Base;
   uint64_t rp_data, va;
   uint32_t test_fail = 0, test_skip = 1;
+  uint32_t locked;
+  uint32_t locked_rp;
+  uint32_t dsf_bdf;
   uint32_t page_size = val_memory_page_size();
   uint32_t tbl_index;
   uint32_t dp_type;
@@ -103,12 +106,14 @@ payload(void)
           continue;
       }
 
+      locked = 0;
       if (val_device_lock(e_bdf))
       {
           val_print(ACS_PRINT_ERR, " Failed to lock the device: 0x%lx", e_bdf);
           test_fail++;
           continue;
       }
+      locked = 1;
 
       val_exerciser_set_param(DMA_ATTRIBUTES, (uint64_t)dram_buf_in_virt, dma_len, instance);
       val_exerciser_ops(START_DMA, EDMA_TO_DEVICE, instance);
@@ -121,7 +126,15 @@ payload(void)
           val_print(ACS_PRINT_ERR,
                     " Incoming request is succesful when TDISP_EN=0 for instance %4x", instance);
           test_fail++;
-          continue;
+          goto cleanup_unlock;
+      }
+
+cleanup_unlock:
+      if (locked) {
+          if (val_device_unlock(e_bdf)) {
+              val_print(ACS_PRINT_ERR,
+                        " Failed to unlock the device: 0x%lx", e_bdf);
+          }
       }
 
       val_memory_set(dram_buf_in_virt, dma_len * 2, 0);
@@ -147,11 +160,24 @@ payload(void)
               continue;
           }
 
+          if (val_pcie_get_downstream_function(rp_bdf, &dsf_bdf))
+              continue;
+
+          locked_rp = 0;
+          if (val_device_lock(dsf_bdf))
+          {
+              val_print(ACS_PRINT_ERR,
+                        " Failed to lock the device: 0x%lx", dsf_bdf);
+              test_fail++;
+              continue;
+          }
+          locked_rp = 1;
+
           val_pcie_disable_tdisp(rp_bdf);
           val_pcie_get_mmio_bar(rp_bdf, &Bar_Base);
 
           if (!Bar_Base)
-              continue;
+              goto cleanup_unlock_rp;
 
           va = val_get_free_va(val_get_min_tg());
           pgt_attr_el3 = LOWER_ATTRS(PGT_ENTRY_ACCESS | SHAREABLE_ATTR(OUTER_SHAREABLE)
@@ -164,7 +190,7 @@ payload(void)
           {
             val_print(ACS_PRINT_ERR, " MUT Access failed for VA: 0x%llx", va);
             test_fail++;
-            continue;
+            goto cleanup_unlock_rp;
           }
           rp_data = shared_data->shared_data_access[0].data;
           if (rp_data != PCIE_UNKNOWN_RESPONSE)
@@ -172,7 +198,15 @@ payload(void)
               val_print(ACS_PRINT_ERR,
                     " Outgoing request is successful when TDISP_EN=0 for instance %4x", instance);
               test_fail++;
-              continue;
+              goto cleanup_unlock_rp;
+          }
+
+cleanup_unlock_rp:
+          if (locked_rp) {
+              if (val_device_unlock(dsf_bdf)) {
+                  val_print(ACS_PRINT_ERR,
+                            " Failed to unlock the device: 0x%lx", dsf_bdf);
+              }
           }
       }
   }
@@ -209,4 +243,3 @@ da_rootport_tdisp_disabled_entry(void)
 
   return status;
 }
-
