@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -140,6 +140,22 @@ typedef struct {
 typedef struct {
   PCIE_ROOT_INFO_BLOCK block[PLATFORM_OVERRIDE_NUM_ECAM];
 } PCIE_ROOT_INFO_TABLE;
+
+typedef struct {
+  uint32_t uid;
+  uint64_t component_reg_base;
+  uint64_t component_reg_length;
+  uint32_t cfmws_count;
+  uint64_t cfmws_base[PLATFORM_OVERRIDE_CXL_MAX_CFMWS_WINDOWS];
+  uint64_t cfmws_length[PLATFORM_OVERRIDE_CXL_MAX_CFMWS_WINDOWS];
+  uint32_t rp_count;
+  uint32_t rp_bdf[PLATFORM_OVERRIDE_CXL_MAX_ROOT_PORTS];
+} PLATFORM_OVERRIDE_CXL_INFO_BLOCK;
+
+typedef struct {
+  uint32_t num_entries;
+  PLATFORM_OVERRIDE_CXL_INFO_BLOCK device[PLATFORM_OVERRIDE_CXL_HOST_BRIDGE_COUNT];
+} PLATFORM_OVERRIDE_CXL_INFO_TABLE;
 
 struct ecam_reg_data {
     uint32_t offset;    //Offset into 4096 bytes ecam config reg space

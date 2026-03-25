@@ -1,0 +1,68 @@
+## @file
+#  Copyright (c) 2026, Arm Limited or its affiliates. All rights reserved.
+#  SPDX-License-Identifier : Apache-2.0
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = RmeSpdmRequesterLib
+  FILE_GUID                      = 6B83E9F5-3DF6-45A4-B0AB-52E67AC1D6AA
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = SpdmRequesterLib
+
+[Sources]
+  libspdm/library/spdm_requester_lib/libspdm_req_challenge.c
+  libspdm/library/spdm_requester_lib/libspdm_req_common.c
+  libspdm/library/spdm_requester_lib/libspdm_req_communication.c
+  libspdm/library/spdm_requester_lib/libspdm_req_encap_certificate.c
+  libspdm/library/spdm_requester_lib/libspdm_req_encap_challenge_auth.c
+  libspdm/library/spdm_requester_lib/libspdm_req_encap_digests.c
+  libspdm/library/spdm_requester_lib/libspdm_req_encap_error.c
+  libspdm/library/spdm_requester_lib/libspdm_req_encap_key_update.c
+  libspdm/library/spdm_requester_lib/libspdm_req_encap_request.c
+  libspdm/library/spdm_requester_lib/libspdm_req_end_session.c
+  libspdm/library/spdm_requester_lib/libspdm_req_finish.c
+  libspdm/library/spdm_requester_lib/libspdm_req_get_capabilities.c
+  libspdm/library/spdm_requester_lib/libspdm_req_get_certificate.c
+  libspdm/library/spdm_requester_lib/libspdm_req_get_digests.c
+  libspdm/library/spdm_requester_lib/libspdm_req_get_measurements.c
+  libspdm/library/spdm_requester_lib/libspdm_req_get_version.c
+  libspdm/library/spdm_requester_lib/libspdm_req_handle_error_response.c
+  libspdm/library/spdm_requester_lib/libspdm_req_heartbeat.c
+  libspdm/library/spdm_requester_lib/libspdm_req_key_exchange.c
+  libspdm/library/spdm_requester_lib/libspdm_req_key_update.c
+  libspdm/library/spdm_requester_lib/libspdm_req_negotiate_algorithms.c
+  libspdm/library/spdm_requester_lib/libspdm_req_psk_exchange.c
+  libspdm/library/spdm_requester_lib/libspdm_req_psk_finish.c
+  libspdm/library/spdm_requester_lib/libspdm_req_send_receive.c
+  libspdm/library/spdm_requester_lib/libspdm_req_vendor_request.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  ShellPkg/Application/rme-acs/uefi_app/RmeAcs.dec
+  SecurityPkg/SecurityPkg.dec
+  CryptoPkg/CryptoPkg.dec
+
+[LibraryClasses]
+  SpdmCommonLib
+  SpdmSecuredMessageLib
+  PlatformLibWrapper
+  MemLibWrapper
+
+[BuildOptions]
+  GCC:*_*_*_CC_FLAGS         = -I$(WORKSPACE)/ShellPkg/Application/rme-acs/ext/include -I$(WORKSPACE)/ShellPkg/Application/rme-acs/ext/libspdm/include
+  CLANGPDB:*_*_*_CC_FLAGS    = -I$(WORKSPACE)/ShellPkg/Application/rme-acs/ext/include -I$(WORKSPACE)/ShellPkg/Application/rme-acs/ext/libspdm/include
+  CLANGDWARF:*_*_*_CC_FLAGS  = -I$(WORKSPACE)/ShellPkg/Application/rme-acs/ext/include -I$(WORKSPACE)/ShellPkg/Application/rme-acs/ext/libspdm/include

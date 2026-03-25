@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,7 @@
 **/
 
 #include "include/pal_override_struct.h"
+#include "include/pal_pcie_enum.h"
 
 /**
  * @brief Platform-specific register and memory region table definitions.
@@ -38,13 +39,27 @@ REGISTER_INFO_TABLE rp_regs[PLATFORM_OVERRIDE_RP_REG_NUM_ENTRIES] = {
 void
 pal_register_create_info_table(REGISTER_INFO_TABLE *registerInfoTable)
 {
+  uint64_t rp_bar;
+
   if (registerInfoTable == NULL)
       return;
 
-  // Just copy the entire structure block from pre-expanded rp_regs[]
+  /*
+   * Register addresses for Root Port entries are provided as BAR-relative
+   * offsets. Resolve them at runtime to the programmed RP BAR0 base.
+   */
   for (int32_t index = 0; index < PLATFORM_OVERRIDE_RP_REG_NUM_ENTRIES; index++)
   {
       registerInfoTable[index] = rp_regs[index];
+
+      if (registerInfoTable[index].type != PCIE_RP)
+          continue;
+
+      rp_bar = pal_pcie_get_base(registerInfoTable[index].bdf, 0);
+      if (rp_bar == 0)
+          continue;
+
+      registerInfoTable[index].address = rp_bar + rp_regs[index].address;
   }
 }
 
@@ -115,4 +130,10 @@ uint32_t
 pal_is_pas_filter_mode_programmable(void)
 {
     return IS_PAS_FILTER_MODE_PROGRAMMABLE;
+}
+
+uint32_t
+pal_is_coherent_da_supported(void)
+{
+    return IS_COHERENT_DA_SUPPORTED;
 }

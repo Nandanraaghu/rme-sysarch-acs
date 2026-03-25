@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2025, 2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +31,9 @@
 #define MEC_MODULE       "mec"
 #define RME_MODULE       "rme"
 #define SMMU_MODULE      "smmu"
+#define CXL_MODULE       "cxl"
+#define CDA_MODULE       "cda"
+#define TDISP_MODULE     "tdisp"
 
 #define CPU_NUM_BIT  32
 #define CPU_NUM_MASK 0xFFFFFFFF
@@ -94,7 +97,10 @@ typedef enum {
     DA_MODULE_ID,
     DPT_MODULE_ID,
     MEC_MODULE_ID,
-    LEGACY_MODULE_ID
+    LEGACY_MODULE_ID,
+    CXL_MODULE_ID,
+    CDA_MODULE_ID,
+    TDISP_MODULE_ID
 } MODULE_ID_e;
 
 #endif

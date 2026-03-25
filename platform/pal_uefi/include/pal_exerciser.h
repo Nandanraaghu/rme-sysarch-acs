@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2016-2022, 2024-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2016-2022, 2024-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -57,6 +57,14 @@
 #define ATS_ADDR      0x028
 #define TXN_TRACE     0x40
 #define TXN_CTRL_BASE 0x44
+#define SEC_SID_CTL   0x48
+#define CXL_CMD_OP      0x80
+#define CXL_CMD_CTRL    0x84
+#define CXL_CMD_STATUS  0x88
+#define CXL_CMD_ADDR_LO 0x8C
+#define CXL_CMD_ADDR_HI 0x90
+#define CXL_CMD_DATA0_LO 0x94
+#define CXL_CMD_DATA0_HI 0x98
 #define PCI_MAX_BUS     255
 #define PCI_MAX_DEVICE  31
 
@@ -95,6 +103,11 @@
 #define ERR_CODE_SHIFT         20
 #define FATAL_SHIFT            31
 #define ERROR_INJECT_BIT       17
+#define CXL_CMD_CTRL_GO        (1u << 0)
+#define CXL_CMD_CTRL_CLEAR_ERR (1u << 1)
+#define CXL_CMD_STATUS_DONE    (1u << 0)
+#define CXL_CMD_STATUS_BUSY    (1u << 1)
+#define CXL_CMD_STATUS_ERR     (1u << 2)
 
 #define PCI_CAP_PTR_OFFSET 8
 #define PCIE_CAP_PTR_OFFSET 20
@@ -149,7 +162,11 @@ typedef enum {
     NUM_TRANSACTIONS  = 0xA,
     ADDRESS_ATTRIBUTES = 0xB,
     DATA_ATTRIBUTES = 0xC,
-    ERROR_INJECT_TYPE = 0xD
+    ERROR_INJECT_TYPE = 0xD,
+    EXERCISER_CXL_CMD_OP = 0x11,
+    EXERCISER_CXL_CMD_ADDR = 0x12,
+    EXERCISER_CXL_CMD_DATA0 = 0x13,
+    EXERCISER_SEC_SID = 0x14
 } EXERCISER_PARAM_TYPE;
 
 typedef enum {
@@ -187,7 +204,8 @@ typedef enum {
     STOP_TXN_MONITOR     = 0xc,
     ATS_TXN_REQ          = 0xd,
     INJECT_ERROR         = 0xe,
-    ATS_INV_CACHE        = 0xf
+    ATS_INV_CACHE        = 0xf,
+    CXL_CMD_START        = 0x10
 } EXERCISER_OPS;
 
 typedef enum {

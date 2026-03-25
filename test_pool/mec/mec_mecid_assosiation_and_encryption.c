@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2024-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2024-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -497,6 +497,10 @@ payload(void)
       }
 
 free_mem:
+      /* Ensure device is returned to unlocked state and RP TDISP disabled. */
+      val_pcie_disable_tdisp(rp_bdf);
+      val_device_unlock(bdf);
+
       pgt_attr_el3 = LOWER_ATTRS(PGT_ENTRY_ACCESS | SHAREABLE_ATTR(OUTER_SHAREABLE)
                      | GET_ATTR_INDEX(DEV_MEM_nGnRnE) | PGT_ENTRY_AP_RW | PAS_ATTR(NONSECURE_PAS));
 
@@ -534,19 +538,6 @@ free_mem:
   {
       val_print(ACS_PRINT_ERR, " free_mem: Failed to disable MEC", 0);
       test_fail++;
-  }
-
-  while (instance--)
-  {
-    bdf = val_exerciser_get_bdf(instance);
-    if (val_pcie_get_rootport(bdf, &rp_bdf))
-          continue;
-
-    val_print(ACS_PRINT_DEBUG, " Disabling TDISP for RP: 0x%x", rp_bdf);
-    val_pcie_disable_tdisp(rp_bdf);
-    val_print(ACS_PRINT_DEBUG, " Putting the device into unlockes state for bdf: 0x%x", bdf);
-    val_device_unlock(bdf);
-
   }
 
   if (test_skip)

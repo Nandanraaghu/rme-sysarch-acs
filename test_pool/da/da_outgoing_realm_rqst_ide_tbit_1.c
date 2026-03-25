@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -156,6 +156,9 @@ payload(void)
               val_print(ACS_PRINT_ERR, " Request rejected by RP BDF: %x", bdf);
               test_fail++;
           }
+
+          /* Best-effort: return device to unlocked state */
+          val_device_unlock(bdf);
       }
   }
 

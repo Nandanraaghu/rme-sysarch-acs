@@ -1,5 +1,5 @@
 ## @file
- # Copyright (c) 2025, Arm Limited or its affiliates. All rights reserved.
+# Copyright (c) 2025-2026, Arm Limited or its affiliates. All rights reserved.
  # SPDX-License-Identifier : Apache-2.0
  #
  # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,8 @@ file(GLOB PAL_SRC
  "${PAL_DIR}/src/AArch64/*.S"
  "${PAL_DIR}/src/*.c"
 )
+# Remove pal_rng.c from the compile list, pal_rng.c is build separately as a library.
+list(FILTER PAL_SRC EXCLUDE REGEX ".*/pal_rng\\.c$")
 
 #Create compile list files
 list(APPEND COMPILE_LIST ${PAL_SRC})
@@ -38,7 +40,14 @@ target_include_directories(${PAL_LIB} PRIVATE
  ${PAL_DIR}/include/
  ${PAL_DIR}/${TARGET}/
  ${PAL_DIR}/${TARGET}/include/
+ ${ROOT_DIR}/tools/configs/
 
 )
+
+# Share SPDM enablement with PAL sources for conditional compilation.
+target_compile_definitions(${PAL_LIB} PRIVATE ENABLE_SPDM=$<IF:$<BOOL:${ENABLE_SPDM}>,1,0>)
+
+# Propagate ACS print verbosity to PAL sources (for UART/prefix helpers).
+target_compile_definitions(${PAL_LIB} PRIVATE "ACS_PRINT_LEVEL=${ACS_PRINT_LEVEL}")
 
 unset(PAL_SRC)

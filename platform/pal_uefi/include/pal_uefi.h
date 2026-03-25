@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +29,7 @@ extern UINT32 g_enable_module;
 extern UINT32 g_pcie_p2p;
 extern UINT32 g_pcie_cache_present;
 extern UINT32 g_print_in_test_context;
+UINT32 pal_acpi_get_root_bridge_uid(UINT16 segment, UINT8 bbn, UINT32 *uid);
 
 
 #define ACS_PRINT_ALWAYS 6 /* No log-level prefix or newline. For inline/multi-part prints */
@@ -200,7 +201,9 @@ typedef struct
     }                                                            \
   } while (0)
 
-#define VAL_EXTRACT_BITS(data, start, end) ((data >> start) & ((1ul << (end - start + 1)) - 1))
+#define VAL_EXTRACT_BITS(data, start, end) \
+  (((UINT64)(data) >> (start)) & \
+   (((end) - (start) + 1) >= 64 ? ~0ULL : ((1ULL << ((end) - (start) + 1)) - 1ULL)))
 /**
   Conduits for service calls (SMC vs HVC).
 **/
@@ -353,6 +356,35 @@ typedef struct
   UINT32 num_entries;
   PCIE_INFO_BLOCK block[];
 } PCIE_INFO_TABLE;
+
+#define CXL_MAX_CFMWS_WINDOWS  2u
+
+/*
+ * CXL info table describing per-host bridge component register windows and
+ * decoder/CFMWS metadata discovered from firmware (CEDT) or overrides.
+ */
+typedef struct
+{
+  UINT32    uid;
+  UINT32    component_reg_type;
+  UINT64    component_reg_base;
+  UINT64    component_reg_length;
+  UINT32    hdm_decoder_count;
+  UINT32    cfmws_count;
+  UINT64    cfmws_base[CXL_MAX_CFMWS_WINDOWS];
+  UINT64    cfmws_length[CXL_MAX_CFMWS_WINDOWS];
+} CXL_INFO_BLOCK;
+
+typedef struct
+{
+  UINT32       num_entries;
+  CXL_INFO_BLOCK device[];
+} CXL_INFO_TABLE;
+
+typedef struct {
+  UINT32 key[8];
+  UINT32 iv[3];
+} CXL_IDE_KEY_BUFFER;
 
 VOID* pal_pci_bdf_to_dev(UINT32 bdf);
 VOID pal_pci_read_config_byte(UINT32 bdf, UINT8 offset, UINT8* data);

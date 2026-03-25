@@ -1,5 +1,5 @@
 /** @file
-  * Copyright (c) 2025, Arm Limited or its affiliates. All rights reserved.
+  * Copyright (c) 2025-2026, Arm Limited or its affiliates. All rights reserved.
   * SPDX-License-Identifier : Apache-2.0
 
   * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@
 #ifndef VAL_EL3_CONFIG_H
 #define VAL_EL3_CONFIG_H
 
-/** 
+/**
  * Defaults chosen to match common FVP settings; can be overridden at build time.
  * Set this to 1 to match FVP platform, 0 for RDV3 platform.
 **/
@@ -47,7 +47,7 @@
 
 #define PLAT_FREE_MEM_START     0x8080000000ULL
 
-#define PLAT_SHARED_ADDRESS     0xE0000000ULL
+#define PLAT_SHARED_ADDRESS     0x0080000000ULL
 
 #define PLAT_FREE_MEM_SMMU      0x8080400000ULL
 #define PLAT_MEMORY_POOL_SIZE   (2 * 1024 * 1024)

@@ -34,4 +34,12 @@ run:
   params:
     -C bp.secureflashloader.fname: ${artifact:BL1}
     -C bp.flashloader0.fname: ${artifact:FIP}
-    -C bp.pl011_uart2.shutdown_tag: "\"RME tests complete. Reset the system.\""
+    -C bp.pl011_uart2.shutdown_tag: "\"RME tests complete. Reset the system\""
+
+  terminals:
+    bp.terminal_1:
+      friendly: el3
+      logfile: fvp_log_bm.1
+    bp.terminal_2:
+      friendly: ns-el2
+      logfile: fvp_log_bm.2

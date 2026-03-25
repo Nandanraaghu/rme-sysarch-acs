@@ -31,6 +31,14 @@ build:
     params:
       BL33: ${artifact:EDK2}
 
+  edk2:
+    repo:
+      revision: edk2-stable202508.01
+
+  edk2-platforms:
+    repo:
+      revision: 8cc9da9dc8431d1f0dfab28d92b3941e2c19aeb8
+
 run:
   rtvars:
     BL1:
@@ -49,7 +57,7 @@ run:
     -C bp.secureflashloader.fname: ${rtvar:BL1}
     -C bp.flashloader0.fname: ${rtvar:FIP}
     -C bp.virtioblockdevice.image_path: ${rtvar:ROOTFS}
-    -C bp.pl011_uart0.shutdown_tag: "\"RME tests complete. Reset the system.\""
+    -C bp.pl011_uart0.shutdown_tag: "\"RME tests complete. Reset the system\""
 
   terminals:
     bp.terminal_0:

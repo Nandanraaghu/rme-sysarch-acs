@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -489,4 +489,48 @@ pal_pcie_mem_get_offset(UINT32 bdf, PCIE_MEM_TYPE_INFO_e mem_type)
 {
 
   return MEM_OFFSET_SMALL;
+}
+
+typedef struct {
+  UINT16 Segment;
+  UINT8  Bus;
+  UINT8  Device;
+  UINT8  Function;
+} PAL_NON_EXPOSED_PORT;
+
+STATIC CONST PAL_NON_EXPOSED_PORT gNonExposedPorts[] = {
+  // Platform integrators append on-die root ports here.
+};
+
+STATIC CONST UINT32 gNonExposedPortCount =
+  (UINT32)(sizeof(gNonExposedPorts) / sizeof(gNonExposedPorts[0]));
+
+UINT32
+pal_link_get_exposure(UINT16 Segment,
+                      UINT8 Bus,
+                      UINT8 Device,
+                      UINT8 Function,
+                      UINT32 *Exposed)
+{
+  UINT32 Index;
+
+  if (Exposed == NULL)
+    return 1;
+
+  *Exposed = 1;
+
+  for (Index = 0; Index < gNonExposedPortCount; ++Index) {
+    CONST PAL_NON_EXPOSED_PORT *Entry = &gNonExposedPorts[Index];
+
+    if ((Entry->Segment == Segment) &&
+        (Entry->Bus == Bus) &&
+        (Entry->Device == Device) &&
+        (Entry->Function == Function))
+    {
+      *Exposed = 0;
+      break;
+    }
+  }
+
+  return 0;
 }

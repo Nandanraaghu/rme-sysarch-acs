@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2023, 2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2023, 2025-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -59,6 +59,7 @@ void setup_acs_pgt_values(void)
     acs_pgt_info.l2_index = 0;
     acs_pgt_info.l3_index = 0;
     acs_pgt_info.size_used = 0;
+    offset = 0;
 }
 
 static
@@ -170,7 +171,10 @@ static uint64_t modify_desc(uint64_t table_desc, uint8_t bit_to_set, uint64_t va
 uint32_t fill_translation_table(tt_descriptor_t tt_desc, memory_region_descriptor_t *mem_desc)
 {
     uint64_t block_size = 0x1ull << tt_desc.size_log2;
-    uint64_t input_address, output_address, filled_tables, table_index, max_allowed_mem;
+    uint64_t input_address = tt_desc.input_base;
+    uint64_t output_address = tt_desc.output_base;
+    uint64_t filled_tables, table_index, max_allowed_mem, iter_increment;
+    uint64_t child_offset, prev_offset;
     uint64_t *tt_base_next_level, *table_desc;
     tt_descriptor_t tt_desc_next_level;
 
@@ -186,90 +190,125 @@ uint32_t fill_translation_table(tt_descriptor_t tt_desc, memory_region_descripto
         is_values_init = 1;
     }
 
-    for (input_address = tt_desc.input_base, output_address = tt_desc.output_base;
-         input_address < tt_desc.input_top;
-         input_address += (block_size - offset), output_address += (block_size - offset))
+    while (input_address <= tt_desc.input_top)
     {
-        table_index = input_address >> tt_desc.size_log2 & ((0x1ull << tt_desc.nbits) - 1);
+        uint64_t current_input = input_address;
+        uint64_t current_output = output_address;
+        uint32_t new_table_allocated = 0;
+
+        table_index = current_input >> tt_desc.size_log2 & ((0x1ull << tt_desc.nbits) - 1);
         table_desc = &tt_desc.tt_base[table_index];
 
         val_print(PGT_DEBUG_LEVEL, " table_index = %d ", table_index);
+        iter_increment = 0;
 
         if (tt_desc.level == 3)
         {
             //Create level 3 page descriptor entry
             *table_desc = PGT_ENTRY_PAGE_MASK | PGT_ENTRY_VALID_MASK;
-            *table_desc |= (output_address & ~(uint64_t)(page_size - 1));
+            *table_desc |= (current_output & ~(uint64_t)(page_size - 1));
             *table_desc |= mem_desc->attributes;
             *table_desc |= PGT_ENTRY_ACCESS_SET;
             val_print(PGT_DEBUG_LEVEL, " page_descriptor = 0x%llx ", *table_desc);
             /* Keep a count of number of L3 tables filled. If the number exceedes the limit, move
                to next L2 table and continue.  */
             increment_pgt_index(tt_desc.level, get_entries_per_level(page_size));
-            offset = 0;
-            continue;
+            iter_increment = page_size;
         }
-
-        //Are input and output addresses eligible for being described via block descriptor?
-        if ((input_address & (block_size - 1)) == 0 &&
-             (output_address & (block_size - 1)) == 0 &&
-             tt_desc.input_top >= (input_address + block_size - 1)) {
+        else if ((current_input & (block_size - 1)) == 0 &&
+                 (current_output & (block_size - 1)) == 0 &&
+                 tt_desc.input_top >= (current_input + block_size - 1)) {
             //Create a block descriptor entry
             *table_desc = PGT_ENTRY_BLOCK_MASK | PGT_ENTRY_VALID_MASK;
-            *table_desc |= (output_address & ~(block_size - 1));
+            *table_desc |= (current_output & ~(block_size - 1));
             *table_desc |= mem_desc->attributes;
             *table_desc |= PGT_ENTRY_ACCESS_SET;
             val_print(PGT_DEBUG_LEVEL, " block_descriptor = 0x%llx ", *table_desc);
             increment_pgt_index(tt_desc.level, get_entries_per_level(page_size));
-            offset = 0;
-            continue;
+            iter_increment = block_size;
         }
-        /*
-        If there's no descriptor populated at current index of this page_table, or
-        If there's a block descriptor, allocate new page, else use the already populated address.
-        Block descriptor info will be overwritten in case its there.
-        */
-        if (*table_desc == 0 || IS_PGT_ENTRY_BLOCK(*table_desc))
+        else
         {
-            tt_base_next_level = val_memory_alloc_pages(1);
-            if (tt_base_next_level == NULL)
+            /*
+            If there's no descriptor populated at current index of this page_table, or
+            If there's a block descriptor, allocate new page, else use the already
+            populated address. Block descriptor info will be overwritten in case its there.
+            */
+            if (*table_desc == 0 || IS_PGT_ENTRY_BLOCK(*table_desc))
             {
-                val_print(ACS_PRINT_ERR, " fill_translation_table: page allocation failed ", 0);
+                tt_base_next_level = val_memory_alloc_pages(1);
+                if (tt_base_next_level == NULL)
+                {
+                    val_print(ACS_PRINT_ERR, " fill_translation_table: page allocation failed ", 0);
+                    return ACS_STATUS_ERR;
+                }
+                val_memory_set(tt_base_next_level, page_size, 0);
+                new_table_allocated = 1;
+            } else
+                tt_base_next_level = val_memory_phys_to_virt(*table_desc & pgt_addr_mask);
+
+            tt_desc_next_level.tt_base    = tt_base_next_level;
+            tt_desc_next_level.input_base = current_input;
+            filled_tables                 = get_pgt_index(tt_desc.level + 1);
+            child_offset                  = filled_tables * get_block_size(tt_desc.level + 1);
+            prev_offset                   = offset;
+            offset                        = child_offset;
+
+            val_print(PGT_DEBUG_LEVEL, " filled_tables in next level = 0x%llx", filled_tables);
+            val_print(PGT_DEBUG_LEVEL, " offset = 0x%llx", child_offset);
+
+            /* Sanity check: child_offset must not exceed the block size for this level.
+             * If it does, the computed max_allowed_mem will be < current_input, which in
+             * turn can make tt_desc_next_level.input_top < input_base and cause an
+             * underflow in iter_increment below. Treat this as an error.
+             */
+            if (child_offset >= block_size)
+            {
+                val_print(ACS_PRINT_ERR,
+                          " fill_translation_table: invalid child_offset 0x%llx ",
+                          child_offset);
+                val_print(ACS_PRINT_ERR,
+                          " fill_translation_table: block_size 0x%llx ",
+                          block_size);
+                offset = prev_offset;
                 return ACS_STATUS_ERR;
             }
-            val_memory_set(tt_base_next_level, page_size, 0);
-        } else
-            tt_base_next_level = val_memory_phys_to_virt(*table_desc & pgt_addr_mask);
 
-        tt_desc_next_level.tt_base    = tt_base_next_level;
-        tt_desc_next_level.input_base = input_address;
-        filled_tables                 = get_pgt_index(tt_desc.level + 1);
-        offset                        = filled_tables * get_block_size(tt_desc.level + 1);
+            // Calculate the maximum allowed mem addr that can be mapped for the L0/L1/L2 table.
+            // This prevents overwriting page tables.
+            max_allowed_mem                = current_input + block_size - child_offset - 1;
+            tt_desc_next_level.input_top   = get_min(tt_desc.input_top, max_allowed_mem);
+            tt_desc_next_level.output_base = current_output;
+            tt_desc_next_level.level       = tt_desc.level + 1;
+            tt_desc_next_level.size_log2   = tt_desc.size_log2 - bits_per_level;
+            tt_desc_next_level.nbits       = bits_per_level;
+            increment_pgt_index(tt_desc.level, get_entries_per_level(page_size));
 
-        val_print(PGT_DEBUG_LEVEL, " filled_tables in next level = 0x%llx", filled_tables);
-        val_print(PGT_DEBUG_LEVEL, " offset = 0x%llx", offset);
+            if (fill_translation_table(tt_desc_next_level, mem_desc))
+            {
+                if (new_table_allocated)
+                    val_memory_free_pages(tt_base_next_level, 1);
+                offset = prev_offset;
+                return ACS_STATUS_ERR;
+            }
+            *table_desc = PGT_ENTRY_TABLE_MASK | PGT_ENTRY_VALID_MASK;
+            *table_desc |= (uint64_t)val_memory_virt_to_phys(tt_base_next_level) &
+                           ~(uint64_t)(page_size - 1);
+            val_print(PGT_DEBUG_LEVEL, " Table descriptor address = 0x%llx ",
+                                                            (uint64_t) table_desc);
+            val_print(PGT_DEBUG_LEVEL, " table_descriptor = 0x%llx ", *table_desc);
+            iter_increment = tt_desc_next_level.input_top - tt_desc_next_level.input_base + 1;
+            offset = prev_offset;
+        }
 
-        // Calculate the maximum allowed mem addr that can be mapped for the L0/L1/L2 table.
-        // This prevents overwriting page tables.
-        max_allowed_mem                = input_address + block_size - offset - 1;
-        tt_desc_next_level.input_top   = get_min(tt_desc.input_top, max_allowed_mem);
-        tt_desc_next_level.output_base = output_address;
-        tt_desc_next_level.level       = tt_desc.level + 1;
-        tt_desc_next_level.size_log2   = tt_desc.size_log2 - bits_per_level;
-        tt_desc_next_level.nbits       = bits_per_level;
-        increment_pgt_index(tt_desc.level, get_entries_per_level(page_size));
-
-        if (fill_translation_table(tt_desc_next_level, mem_desc))
+        if (iter_increment == 0)
         {
-            val_memory_free_pages(tt_base_next_level, 1);
+            val_print(ACS_PRINT_ERR, " fill_translation_table: zero length mapping detected ", 0);
             return ACS_STATUS_ERR;
         }
 
-        *table_desc = PGT_ENTRY_TABLE_MASK | PGT_ENTRY_VALID_MASK;
-        *table_desc |= (uint64_t)val_memory_virt_to_phys(tt_base_next_level) &
-                       ~(uint64_t)(page_size - 1);
-        val_print(PGT_DEBUG_LEVEL, " Table descriptor address = 0x%llx ", (uint64_t) table_desc);
-        val_print(PGT_DEBUG_LEVEL, " table_descriptor = 0x%llx ", *table_desc);
+        input_address = current_input + iter_increment;
+        output_address = current_output + iter_increment;
     }
     return 0;
 }
@@ -328,27 +367,30 @@ uint32_t val_pgt_create(memory_region_descriptor_t *mem_desc, pgt_descriptor_t *
 
     for (mem_desc_iter = mem_desc; mem_desc_iter->length != 0; ++mem_desc_iter)
     {
-        val_print(PGT_DEBUG_LEVEL, " val_pgt_create:i/p addr 0x%llx", mem_desc->virtual_address);
-        val_print(PGT_DEBUG_LEVEL, " val_pgt_create:o/p addr 0x%llx", mem_desc->physical_address);
-        val_print(PGT_DEBUG_LEVEL, " val_pgt_create:length 0x%llx\n ", mem_desc->length);
-        if ((mem_desc->virtual_address & (uint64_t)(page_size - 1)) != 0 ||
-            (mem_desc->physical_address & (uint64_t)(page_size - 1)) != 0)
+        val_print(PGT_DEBUG_LEVEL, " val_pgt_create:i/p addr 0x%llx",
+                  mem_desc_iter->virtual_address);
+        val_print(PGT_DEBUG_LEVEL, " val_pgt_create:o/p addr 0x%llx",
+                  mem_desc_iter->physical_address);
+        val_print(PGT_DEBUG_LEVEL, " val_pgt_create:length 0x%llx\n ",
+                  mem_desc_iter->length);
+        if ((mem_desc_iter->virtual_address & (uint64_t)(page_size - 1)) != 0 ||
+            (mem_desc_iter->physical_address & (uint64_t)(page_size - 1)) != 0)
             {
                 val_print(ACS_PRINT_ERR, " val_pgt_create: address alignment error ", 0);
                 return ACS_STATUS_ERR;
             }
 
-        if (mem_desc->physical_address >= (0x1ull << pgt_desc->oas))
+        if (mem_desc_iter->physical_address >= (0x1ull << pgt_desc->oas))
         {
             val_print(ACS_PRINT_ERR, " val_pgt_create: output address size error   ", 0);
             return ACS_STATUS_ERR;
         }
 
-        if (mem_desc->virtual_address >= (0x1ull << pgt_desc->ias))
+        if (mem_desc_iter->virtual_address >= (0x1ull << pgt_desc->ias))
         {
             val_print(ACS_PRINT_WARN, " val_pgt_create: input address size error \
                             and truncating to %d-bits   ", pgt_desc->ias);
-            mem_desc->virtual_address &= ((0x1ull << pgt_desc->ias) - 1);
+            mem_desc_iter->virtual_address &= ((0x1ull << pgt_desc->ias) - 1);
         }
 
 #ifndef TARGET_BM_BOOT
@@ -361,14 +403,14 @@ uint32_t val_pgt_create(memory_region_descriptor_t *mem_desc, pgt_descriptor_t *
             return ACS_STATUS_ERR;
         }
 #endif
-        tt_desc.input_base = mem_desc->virtual_address & ((0x1ull << pgt_desc->ias) - 1);
-        tt_desc.input_top = tt_desc.input_base + mem_desc->length - 1;
-        tt_desc.output_base = mem_desc->physical_address & ((0x1ull << pgt_desc->oas) - 1);
+        tt_desc.input_base = mem_desc_iter->virtual_address & ((0x1ull << pgt_desc->ias) - 1);
+        tt_desc.input_top = tt_desc.input_base + mem_desc_iter->length - 1;
+        tt_desc.output_base = mem_desc_iter->physical_address & ((0x1ull << pgt_desc->oas) - 1);
         tt_desc.level = 4 - num_pgt_levels;
         tt_desc.size_log2 = (num_pgt_levels - 1) * bits_per_level + page_size_log2;
         tt_desc.nbits = pgt_desc->ias - tt_desc.size_log2;
 
-        if (fill_translation_table(tt_desc, mem_desc))
+        if (fill_translation_table(tt_desc, mem_desc_iter))
         {
             val_memory_free_pages(tt_base, 1);
             return ACS_STATUS_ERR;
@@ -420,27 +462,30 @@ uint32_t val_realm_pgt_create(memory_region_descriptor_t *mem_desc, pgt_descript
 
     for (mem_desc_iter = mem_desc; mem_desc_iter->length != 0; ++mem_desc_iter)
     {
-        val_print(PGT_DEBUG_LEVEL, " val_pgt_create:i/p addr 0x%llx", mem_desc->virtual_address);
-        val_print(PGT_DEBUG_LEVEL, " val_pgt_create:o/p addr 0x%llx", mem_desc->physical_address);
-        val_print(PGT_DEBUG_LEVEL, " val_pgt_create:length 0x%llx\n ", mem_desc->length);
-        if ((mem_desc->virtual_address & (uint64_t)(page_size - 1)) != 0 ||
-            (mem_desc->physical_address & (uint64_t)(page_size - 1)) != 0)
+        val_print(PGT_DEBUG_LEVEL, " val_pgt_create:i/p addr 0x%llx",
+                  mem_desc_iter->virtual_address);
+        val_print(PGT_DEBUG_LEVEL, " val_pgt_create:o/p addr 0x%llx",
+                  mem_desc_iter->physical_address);
+        val_print(PGT_DEBUG_LEVEL, " val_pgt_create:length 0x%llx\n ",
+                  mem_desc_iter->length);
+        if ((mem_desc_iter->virtual_address & (uint64_t)(page_size - 1)) != 0 ||
+            (mem_desc_iter->physical_address & (uint64_t)(page_size - 1)) != 0)
             {
                 val_print(ACS_PRINT_ERR, " val_pgt_create: address alignment error ", 0);
                 return ACS_STATUS_ERR;
             }
 
-        if (mem_desc->physical_address >= (0x1ull << pgt_desc->oas))
+        if (mem_desc_iter->physical_address >= (0x1ull << pgt_desc->oas))
         {
             val_print(ACS_PRINT_ERR, " val_pgt_create: output address size error   ", 0);
             return ACS_STATUS_ERR;
         }
 
-        if (mem_desc->virtual_address >= (0x1ull << pgt_desc->ias))
+        if (mem_desc_iter->virtual_address >= (0x1ull << pgt_desc->ias))
             {
             val_print(ACS_PRINT_WARN, " val_pgt_create: input address size error \
                             and truncating to %d-bits   ", pgt_desc->ias);
-            mem_desc->virtual_address &= ((0x1ull << pgt_desc->ias) - 1);
+            mem_desc_iter->virtual_address &= ((0x1ull << pgt_desc->ias) - 1);
             }
 
 #ifndef TARGET_BM_BOOT
@@ -453,14 +498,14 @@ uint32_t val_realm_pgt_create(memory_region_descriptor_t *mem_desc, pgt_descript
             return ACS_STATUS_ERR;
         }
 #endif
-        tt_desc.input_base = mem_desc->virtual_address & ((0x1ull << pgt_desc->ias) - 1);
-        tt_desc.input_top = tt_desc.input_base + mem_desc->length - 1;
-        tt_desc.output_base = mem_desc->physical_address & ((0x1ull << pgt_desc->oas) - 1);
+        tt_desc.input_base = mem_desc_iter->virtual_address & ((0x1ull << pgt_desc->ias) - 1);
+        tt_desc.input_top = tt_desc.input_base + mem_desc_iter->length - 1;
+        tt_desc.output_base = mem_desc_iter->physical_address & ((0x1ull << pgt_desc->oas) - 1);
         tt_desc.level = 4 - num_pgt_levels;
         tt_desc.size_log2 = (num_pgt_levels - 1) * bits_per_level + page_size_log2;
         tt_desc.nbits = pgt_desc->ias - tt_desc.size_log2;
 
-        if (fill_translation_table(tt_desc, mem_desc))
+        if (fill_translation_table(tt_desc, mem_desc_iter))
         {
             val_memory_free_pages(tt_base, 1);
             return ACS_STATUS_ERR;

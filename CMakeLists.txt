@@ -1,5 +1,5 @@
 ## @file
- # Copyright (c) 2025, Arm Limited or its affiliates. All rights reserved.
+ # Copyright (c) 2025-2026, Arm Limited or its affiliates. All rights reserved.
  # SPDX-License-Identifier : Apache-2.0
  #
  # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +18,9 @@
 # Set the minimum required version of CMake for the project
 cmake_minimum_required(VERSION 3.17)
 project(rme-acs LANGUAGES)
+
+option(ENABLE_SPDM "Build RME ACS with libspdm/spdm-emu support" OFF)
+message(STATUS "[ACS] : ENABLE_SPDM is ${ENABLE_SPDM}")
 
 # Tool dependency check
 get_filename_component(ROOT_DIR . ABSOLUTE)

@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,8 +18,10 @@
 #include "include/val.h"
 #include "include/val_common.h"
 #include "include/val_pcie.h"
+#include "include/val_cxl.h"
 #include "include/val_da.h"
 #include "include/val_el32.h"
+#include "include/val_memory.h"
 
 #define WARN_STR_LEN 7
 #define TEST_DATA_1 0xabababab
@@ -570,6 +572,17 @@ val_pcie_create_device_bdf_table()
                       */
                       val_pcie_enable_bme(bdf);
                       val_pcie_enable_msa(bdf);
+
+                      if (val_cxl_device_is_cxl(bdf) == ACS_STATUS_PASS)
+                      {
+                          if (val_cxl_component_add(bdf) == ACS_STATUS_ERR)
+                          {
+                              val_print(ACS_PRINT_ERR, " CXL component add failed for BDF 0x%x",
+                                        bdf);
+                              return 1;
+                          }
+                          continue;
+                      }
 
                       g_pcie_bdf_table->device[g_pcie_bdf_table->num_entries++].bdf = bdf;
                   }
@@ -1277,6 +1290,170 @@ val_pcie_enable_msa(uint32_t bdf)
 }
 
 /**
+  @brief   Save a snapshot of endpoint configuration that may be lost across a reset.
+
+  @param  endpoint_bdf PCIe identifier of the endpoint to snapshot.
+  @param  cfg          Snapshot buffer to populate.
+
+  @return ACS_STATUS_PASS on success, ACS_STATUS_ERR on failures.
+**/
+uint32_t
+val_pcie_save_endpoint_cfg(uint32_t endpoint_bdf, PCIE_ENDPOINT_CFG *cfg)
+{
+  if (cfg == NULL)
+    return ACS_STATUS_ERR;
+
+  /* Clear the snapshot so a partial read can't leave stale values. */
+  val_memory_set(cfg, (uint32_t)sizeof(*cfg), 0);
+
+  if (val_pcie_read_cfg(endpoint_bdf, TYPE01_CR, &cfg->command))
+    return ACS_STATUS_ERR;
+
+  for (uint32_t idx = 0u; idx < 6u; ++idx) {
+    if (val_pcie_read_cfg(endpoint_bdf, TYPE01_BAR + (idx * 4u), &cfg->bar[idx]))
+      return ACS_STATUS_ERR;
+  }
+
+  cfg->valid = 1u;
+  return ACS_STATUS_PASS;
+}
+
+/**
+  @brief   Restore an endpoint configuration snapshot captured by val_pcie_save_endpoint_cfg.
+
+  @param  endpoint_bdf PCIe identifier of the endpoint to restore.
+  @param  cfg          Snapshot buffer previously captured.
+**/
+void
+val_pcie_restore_endpoint_cfg(uint32_t endpoint_bdf, const PCIE_ENDPOINT_CFG *cfg)
+{
+  if ((cfg == NULL) || (cfg->valid == 0u))
+    return;
+
+  /*
+   * A reset may clear BAR programming and command bits. Restore them so that
+   * subsequent operations that rely on endpoint MMIO can run without requiring
+   * a full PCI enumeration pass.
+   */
+  val_pcie_disable_msa(endpoint_bdf);
+  val_pcie_disable_bme(endpoint_bdf);
+
+  for (uint32_t idx = 0u; idx < 6u; ++idx)
+    val_pcie_write_cfg(endpoint_bdf, TYPE01_BAR + (idx * 4u), cfg->bar[idx]);
+
+  val_pcie_write_cfg(endpoint_bdf, TYPE01_CR, cfg->command);
+
+  /*
+   * If the endpoint is a CXL device, ensure CXL.mem is re-enabled after a reset.
+   * Non-CXL devices are ignored to avoid spurious log messages.
+   */
+  if (val_cxl_device_is_cxl(endpoint_bdf) == ACS_STATUS_PASS)
+    (void)val_cxl_enable_mem(endpoint_bdf);
+}
+
+static uint32_t
+val_pcie_wait_for_device_present(uint32_t bdf)
+{
+  uint32_t reg;
+  uint32_t retries = 200u;
+
+  /* Poll Vendor ID until config space responds with a valid value post-reset. */
+  while (retries-- != 0u) {
+    if (val_pcie_read_cfg(bdf, TYPE01_VIDR, &reg) == PCIE_SUCCESS) {
+      if ((reg & TYPE01_VIDR_MASK) != TYPE01_VIDR_MASK)
+        return ACS_STATUS_PASS;
+    }
+
+    (void)val_time_delay_ms(10u);
+  }
+
+  return ACS_STATUS_FAIL;
+}
+
+static uint32_t
+val_pcie_trigger_flr(uint32_t bdf)
+{
+  uint32_t pciecs_base;
+  uint32_t reg;
+  uint32_t retries;
+
+  /* Use Function Level Reset when supported by the device. */
+  if (val_pcie_find_capability(bdf, PCIE_CAP, CID_PCIECS, &pciecs_base) != PCIE_SUCCESS)
+    return ACS_STATUS_ERR;
+
+  if (val_pcie_read_cfg(bdf, pciecs_base + DCAPR_OFFSET, &reg))
+    return ACS_STATUS_ERR;
+
+  if (VAL_EXTRACT_BITS(reg, DCAPR_FLRC_SHIFT, DCAPR_FLRC_SHIFT) == 0u)
+    return ACS_STATUS_SKIP;
+
+  if (val_pcie_read_cfg(bdf, pciecs_base + DCTLR_OFFSET, &reg))
+    return ACS_STATUS_ERR;
+
+  val_pcie_write_cfg(bdf, pciecs_base + DCTLR_OFFSET, reg | DCTLR_FLR_SET);
+
+  /* Poll until the FLR bit self-clears or until we time out. */
+  retries = 1000u;
+  while (retries-- != 0u) {
+    if (val_pcie_read_cfg(bdf, pciecs_base + DCTLR_OFFSET, &reg))
+      return ACS_STATUS_ERR;
+
+    if ((reg & DCTLR_FLR_SET) == 0u)
+      return ACS_STATUS_PASS;
+
+    (void)val_time_delay_ms(1u);
+  }
+
+  return ACS_STATUS_ERR;
+}
+
+static uint32_t
+val_pcie_trigger_secondary_bus_reset(uint32_t rp_bdf)
+{
+  uint32_t reg;
+
+  /* Secondary Bus Reset provides a reset path when FLR is not available. */
+  if (val_pcie_read_cfg(rp_bdf, TYPE1_SEC_STA, &reg))
+    return ACS_STATUS_ERR;
+
+  val_pcie_write_cfg(rp_bdf, TYPE1_SEC_STA, reg | BRIDGE_CTRL_SBR_SET);
+  (void)val_time_delay_ms(100u);
+  val_pcie_write_cfg(rp_bdf, TYPE1_SEC_STA, reg);
+  (void)val_time_delay_ms(100u);
+
+  return ACS_STATUS_PASS;
+}
+
+/**
+  @brief   Reset an endpoint (prefer FLR, fallback to Secondary Bus Reset).
+
+  The helper waits for config space to respond post-reset using the Vendor ID
+  register as a probe.
+
+  @param  rp_bdf       Root port BDF used for Secondary Bus Reset fallback.
+  @param  endpoint_bdf Endpoint BDF to reset.
+
+  @return ACS_STATUS_PASS on success.
+          ACS_STATUS_FAIL when config space does not respond after reset.
+          ACS_STATUS_ERR on failures to trigger the reset.
+**/
+uint32_t
+val_pcie_reset_endpoint(uint32_t rp_bdf, uint32_t endpoint_bdf)
+{
+  uint32_t status;
+
+  status = val_pcie_trigger_flr(endpoint_bdf);
+  if (status == ACS_STATUS_SKIP)
+    status = val_pcie_trigger_secondary_bus_reset(rp_bdf);
+
+  if (status != ACS_STATUS_PASS)
+    return status;
+
+  (void)val_time_delay_ms(100u);
+  return val_pcie_wait_for_device_present(endpoint_bdf);
+}
+
+/**
   @brief  Reads the BAR memory space access in the command register.
 
   @param  bdf   - Segment/Bus/Dev/Func in the format of PCIE_CREATE_BDF
@@ -1529,9 +1706,12 @@ val_pcie_disable_eru(uint32_t bdf)
 
   @param  bdf           - Segment/Bus/Dev/Func in the format of PCIE_CREATE_BDF
   @param  bitfield_entry- Expected bit-field entry configuration for the comparison
+  @param  dvsec_select   - selector indicating which DVSEC instance to target
   @return Return 0 for success, else 1 for failure.
 **/
-uint32_t val_pcie_bitfield_check(uint32_t bdf, uint64_t *bitfield_entry)
+uint32_t val_pcie_bitfield_check(uint32_t bdf,
+                                 uint64_t *bitfield_entry,
+                                 VAL_DVSEC_SELECT dvsec_select)
 {
 
   uint32_t bf_value;
@@ -1568,13 +1748,20 @@ uint32_t val_pcie_bitfield_check(uint32_t bdf, uint64_t *bitfield_entry)
       case PCIE_ECAP:
           if (bf_entry->ecap_id == ECID_DVSEC)
           {
-            status = val_pcie_find_da_capability(bdf, &cap_base);
-            id = bf_entry->ecap_id;
-            break;
+            if (dvsec_select == VAL_DVSEC_SELECT_RMECDA)
+            {
+              status = val_pcie_find_cda_capability(bdf, &cap_base);
+              id = RMECDA_HEAD2_DVSEC_ID;
+              break;
+            }
+            else if (dvsec_select == VAL_DVSEC_SELECT_RMEDA)
+            {
+              status = val_pcie_find_da_capability(bdf, &cap_base);
+              id = RMEDA_HEAD2_DVSEC_ID;
+              break;
+            }
           }
-          status = val_pcie_find_capability(bdf, PCIE_ECAP, bf_entry->ecap_id, &cap_base);
-          id = bf_entry->ecap_id;
-          break;
+          return 0;
       default:
           val_print(ACS_PRINT_ERR, " Invalid reg_type : 0x%x  ", bf_entry->reg_type);
           return 1;
@@ -1602,7 +1789,6 @@ uint32_t val_pcie_bitfield_check(uint32_t bdf, uint64_t *bitfield_entry)
   if (bf_value != bf_entry->cfg_value)
   {
       val_print(ACS_PRINT_ALWAYS, " BDF 0x%x : ", bdf);
-      val_print(ACS_PRINT_ALWAYS, bf_entry->err_str1, 0);
       val_print(ACS_PRINT_ALWAYS, ": 0x%x", bf_value);
       val_print(ACS_PRINT_ALWAYS, " instead of 0x%x", bf_entry->cfg_value);
       if (!val_strncmp(bf_entry->err_str1, "WARNING", WARN_STR_LEN))
@@ -1677,12 +1863,15 @@ uint32_t val_pcie_bitfield_check(uint32_t bdf, uint64_t *bitfield_entry)
   @brief  Returns if a PCIe config register bitfields are as per rme specification.
 
   @param  bf_info_table - table of registers and their bit-fields for checking
+  @param  dvsec_select  - selector for which Arm DVSEC instance to validate
   @return Return  0                 for success
                   ACS_STATUS_SKIP   if no checks are executed
                   <value>           number of failures.
 **/
 uint32_t
-val_pcie_register_bitfields_check(uint64_t *bf_info_table, uint32_t num_bitfield_entries)
+val_pcie_register_bitfields_check(uint64_t *bf_info_table,
+                                  uint32_t num_bitfield_entries,
+                                  VAL_DVSEC_SELECT dvsec_select)
 {
 
   uint32_t bdf;
@@ -1691,16 +1880,46 @@ val_pcie_register_bitfields_check(uint64_t *bf_info_table, uint32_t num_bitfield
   uint32_t num_fails;
   uint32_t num_pass;
   uint32_t index;
+  uint32_t num_devices;
+  uint32_t use_cxl_entries;
   pcie_cfgreg_bitfield_entry *bf_entry;
+  pcie_device_bdf_table *pcie_table;
+  CXL_COMPONENT_TABLE *cxl_table;
 
   num_fails = num_pass = tbl_index = 0;
+  num_devices = 0;
+  use_cxl_entries = 0;
+  pcie_table = g_pcie_bdf_table;
+  cxl_table = NULL;
 
   val_print(ACS_PRINT_INFO, " Number of bit-field entries to check %d\n",
             num_bitfield_entries);
 
-  while (tbl_index < g_pcie_bdf_table->num_entries)
+  if (dvsec_select == VAL_DVSEC_SELECT_RMECDA)
   {
-      bdf = g_pcie_bdf_table->device[tbl_index++].bdf;
+      cxl_table = val_cxl_component_table_ptr();
+      if ((cxl_table == NULL) || (cxl_table->num_entries == 0))
+      {
+          return ACS_STATUS_SKIP;
+      }
+      num_devices = cxl_table->num_entries;
+      use_cxl_entries = 1;
+  }
+  else
+  {
+      if ((pcie_table == NULL) || (pcie_table->num_entries == 0))
+      {
+          return ACS_STATUS_SKIP;
+      }
+      num_devices = pcie_table->num_entries;
+  }
+
+  while (tbl_index < num_devices)
+  {
+      if (use_cxl_entries)
+          bdf = cxl_table->component[tbl_index++].bdf;
+      else
+          bdf = pcie_table->device[tbl_index++].bdf;
 
       /* Disable error reporting of this Function to the Upstream */
       val_pcie_disable_eru(bdf);
@@ -1726,7 +1945,7 @@ val_pcie_register_bitfields_check(uint64_t *bf_info_table, uint32_t num_bitfield
 
 
           /* Check for the compliance */
-          if (val_pcie_bitfield_check(bdf, (void *)bf_entry))
+          if (val_pcie_bitfield_check(bdf, (void *)bf_entry, dvsec_select))
               num_fails++;
           else
               num_pass++;
@@ -2065,6 +2284,36 @@ val_pcie_is_cache_present(uint32_t bdf)
 }
 
 /**
+  @brief  Read the Root Port ID (Port Number) for the given PCIe function.
+
+  @param  bdf       - Segment/Bus/Dev/Func in the format of PCIE_CREATE_BDF
+  @param  port_id   - Output pointer that receives the Root Port ID.
+
+  @return PCIE_SUCCESS on success, otherwise an error code.
+**/
+uint32_t
+val_pcie_get_root_port_id(uint32_t bdf, uint32_t *port_id)
+{
+  uint32_t pcie_cap_offset;
+  uint32_t lnkcap;
+  uint32_t status;
+
+  if (port_id == NULL)
+    return ACS_STATUS_ERR;
+
+  status = val_pcie_find_capability(bdf, PCIE_CAP, CID_PCIECS, &pcie_cap_offset);
+  if (status != PCIE_SUCCESS)
+    return status;
+
+  status = val_pcie_read_cfg(bdf, pcie_cap_offset + LCAPR_OFFSET, &lnkcap);
+  if (status != PCIE_SUCCESS)
+    return status;
+
+  *port_id = (lnkcap >> LCAPR_PN_SHIFT) & LCAPR_PN_MASK;
+  return PCIE_SUCCESS;
+}
+
+/**
   @brief  Returns data link layer link active status of the given PCIe function
 
   @param  bdf        - Segment/Bus/Dev/Func in the format of PCIE_CREATE_BDF
@@ -2201,44 +2450,123 @@ uint32_t val_pcie_mem_get_offset(uint32_t type)
 }
 
 /**
- * @brief  Returns the Function's config capability offset matching it's input parameter
-          cid. cid_offset set to the matching cpability offset w.r.t. zero.
+  @brief  Locate a PCIe Designated Vendor-Specific Extended Capability (DVSEC)
+          that matches the supplied vendor and DVSEC identifiers.
 
-  @param  bdf        - Segment/Bus/Dev/Func in the format of PCIE_CREATE_BDF
-  @param  cid        - Capability ID
-  @param  cid_offset - On return, points to cid offset in Function config space
-  @return PCIE_CAP_NOT_FOUND, if there was a failure in finding required capability.
-          PCIE_SUCCESS, if the search was successful.
+  @param  bdf        Segment/Bus/Dev/Func encoded via PCIE_CREATE_BDF.
+  @param  vendor_id  DVSEC vendor identifier to match.
+  @param  dvsec_id   DVSEC ID to match within the vendor namespace.
+  @param  offset_out Output pointer that receives the DVSEC offset on success.
+
+  @return PCIE_SUCCESS       Capability located successfully.
+          PCIE_CAP_NOT_FOUND Capability absent or on access failure.
 **/
 uint32_t
-val_pcie_find_da_capability(uint32_t bdf, uint32_t *cid_offset)
+val_pcie_find_vendor_dvsec(uint32_t bdf,
+                           uint16_t vendor_id,
+                           uint16_t dvsec_id,
+                           uint32_t *offset_out)
 {
-
+  uint32_t next_cap_offset = PCIE_ECAP_START;
+  uint32_t prev_cap_offset = PCIE_UNKNOWN_RESPONSE;
   uint32_t reg_value;
-  uint32_t next_cap_offset;
 
-  /* Serach in PCIe extended configuration space */
-  next_cap_offset = PCIE_ECAP_START;
+  if (offset_out == NULL)
+    return PCIE_CAP_NOT_FOUND;
+
+  /* Search the PCIe extended configuration space */
   while (next_cap_offset)
   {
-    val_pcie_read_cfg(bdf, next_cap_offset, &reg_value);
+    if (next_cap_offset == prev_cap_offset)
+      break;
+
+    prev_cap_offset = next_cap_offset;
+
+    if (val_pcie_read_cfg(bdf, next_cap_offset, &reg_value))
+      return PCIE_CAP_NOT_FOUND;
 
     if ((reg_value & PCIE_ECAP_CIDR_MASK) == ECID_DVSEC)
     {
-      val_pcie_read_cfg(bdf, next_cap_offset + RMEDA_HEAD2, &reg_value);
-      reg_value = reg_value & RMEDA_HEAD2_DVSEC_ID_MASK;
+      uint32_t header1;
+      uint32_t header2;
 
-      if (reg_value == RMEDA_HEAD2_DVSEC_ID)
+      if (val_pcie_read_cfg(bdf, next_cap_offset + PCIE_DVSEC_HDR1_OFFSET, &header1) ||
+          val_pcie_read_cfg(bdf, next_cap_offset + PCIE_DVSEC_HDR2_OFFSET, &header2))
+        return PCIE_CAP_NOT_FOUND;
+
+      if (((uint16_t)(header1 & DVSEC_VID_MASK) == vendor_id) &&
+          ((uint16_t)(header2 & DVSEC_ID_MASK) == dvsec_id))
       {
-        *cid_offset = next_cap_offset;
+        *offset_out = next_cap_offset;
         return PCIE_SUCCESS;
       }
     }
+
     next_cap_offset = ((reg_value >> PCIE_ECAP_NCPR_SHIFT) & PCIE_ECAP_NCPR_MASK);
   }
 
   /* The capability was not found */
   return PCIE_CAP_NOT_FOUND;
+}
+
+/**
+ * @brief  Returns the Function's config capability offset for the RME-DA DVSEC.
+ *
+ * @param  bdf        Segment/Bus/Dev/Func in the format of PCIE_CREATE_BDF
+ * @param  cid_offset Output pointer that receives the capability offset
+ *
+ * @return PCIE_CAP_NOT_FOUND if the RME-DA DVSEC is absent
+ *         PCIE_SUCCESS       on success.
+**/
+uint32_t
+val_pcie_find_da_capability(uint32_t bdf, uint32_t *cid_offset)
+{
+  return val_pcie_find_vendor_dvsec(bdf,
+                                    ARM_RME_VENDOR_ID,
+                                    RMEDA_HEAD2_DVSEC_ID,
+                                    cid_offset);
+}
+
+/**
+ * @brief  Returns the Function's config capability offset for the RME-CDA DVSEC.
+ *
+ * @param  bdf        Segment/Bus/Dev/Func in the format of PCIE_CREATE_BDF
+ * @param  cid_offset Output pointer that receives the capability offset
+ *
+ * @return PCIE_CAP_NOT_FOUND if the RME-CDA DVSEC is absent
+ *         PCIE_SUCCESS       on success.
+**/
+uint32_t
+val_pcie_find_cda_capability(uint32_t bdf, uint32_t *cid_offset)
+{
+  return val_pcie_find_vendor_dvsec(bdf,
+                                    ARM_RME_VENDOR_ID,
+                                    RMECDA_HEAD2_DVSEC_ID,
+                                    cid_offset);
+}
+
+/**
+ * @brief  Read the RMECDA_CTL1 register for a PCIe Function.
+ *
+ * @param  bdf    Segment/Bus/Dev/Func in the format of PCIE_CREATE_BDF
+ * @param  value  Output pointer that receives the RMECDA_CTL1 register value.
+ *
+ * @return PCIE_SUCCESS on success, otherwise an error code.
+**/
+uint32_t
+val_pcie_read_rmecda_ctl1(uint32_t bdf, uint32_t *value)
+{
+  uint32_t rmecda_offset;
+  uint32_t status;
+
+  if (value == NULL)
+    return ACS_STATUS_ERR;
+
+  status = val_pcie_find_cda_capability(bdf, &rmecda_offset);
+  if (status != PCIE_SUCCESS)
+    return status;
+
+  return val_pcie_read_cfg(bdf, rmecda_offset + RMECDA_CTL1_OFFSET, value);
 }
 
 /**
@@ -2249,18 +2577,41 @@ val_pcie_find_da_capability(uint32_t bdf, uint32_t *cid_offset)
 uint32_t val_pcie_enable_tdisp(uint32_t bdf)
 {
   uint64_t va;
-  uint32_t cfg_addr, attr;
+  uint64_t cfg_addr;
+  uint64_t attr;
   uint32_t cap_base, reg_value;
+  uint32_t reg_offset;
+  uint32_t status;
+  uint32_t write_value;
 
-  if (val_pcie_find_da_capability(bdf, &cap_base) != PCIE_SUCCESS)
+  status = val_pcie_find_vendor_dvsec(bdf, ARM_RME_VENDOR_ID, RMECDA_HEAD2_DVSEC_ID, &cap_base);
+  if (status == PCIE_SUCCESS)
   {
-       val_print(ACS_PRINT_INFO, " PCIe DVSEC Capability not presentfor BDF: 0x%x ", bdf);
-       return 1;
+    reg_offset = RMECDA_CTL1_OFFSET;
+  }
+  else if (status == PCIE_CAP_NOT_FOUND)
+  {
+    if (val_pcie_find_da_capability(bdf, &cap_base) != PCIE_SUCCESS)
+    {
+      val_print(ACS_PRINT_INFO, " PCIe DVSEC Capability not presentfor BDF: 0x%x ", bdf);
+      return 1;
+    }
+    reg_offset = RMEDA_CTL1;
+  }
+  else
+  {
+    val_print(ACS_PRINT_ERR, " Failed to read DVSEC headers for BDF: 0x%x", bdf);
+    return 1;
   }
 
   va = val_get_free_va(val_get_min_tg());
   cfg_addr = val_pcie_get_bdf_config_addr(bdf);
-  val_pcie_read_cfg(bdf, cap_base + RMEDA_CTL1, &reg_value);
+
+  if (cfg_addr == 0u)
+    return 1;
+
+  val_pcie_read_cfg(bdf, cap_base + reg_offset, &reg_value);
+  write_value = reg_value | 0x1u;
   attr = LOWER_ATTRS(PGT_ENTRY_ACCESS | SHAREABLE_ATTR(OUTER_SHAREABLE)
                   | GET_ATTR_INDEX(DEV_MEM_nGnRnE) | PGT_ENTRY_AP_RW);
 
@@ -2270,15 +2621,15 @@ uint32_t val_pcie_enable_tdisp(uint32_t bdf)
     return 1;
   }
   shared_data->num_access = 1;
-  shared_data->shared_data_access[0].addr = va + cap_base + 0xC;
+  shared_data->shared_data_access[0].addr = va + cap_base + reg_offset;
   shared_data->shared_data_access[0].access_type = WRITE_DATA;
-  shared_data->shared_data_access[0].data = 1;
+  shared_data->shared_data_access[0].data = write_value;
   if (val_pe_access_mut_el3())
   {
     val_print(ACS_PRINT_ERR, " MUT Access failed", 0);
     return 1;
   }
-  val_pcie_read_cfg(bdf, cap_base + RMEDA_CTL1, &reg_value);
+  val_pcie_read_cfg(bdf, cap_base + reg_offset, &reg_value);
 
   return 0;
 }
@@ -2286,17 +2637,41 @@ uint32_t val_pcie_enable_tdisp(uint32_t bdf)
 uint32_t val_pcie_disable_tdisp(uint32_t bdf)
 {
   uint64_t va;
-  uint32_t cfg_addr, attr;
-  uint32_t cap_base;
+  uint64_t cfg_addr;
+  uint64_t attr;
+  uint32_t cap_base, reg_value;
+  uint32_t reg_offset;
+  uint32_t status;
+  uint32_t write_value;
 
-  if (val_pcie_find_da_capability(bdf, &cap_base) != PCIE_SUCCESS)
+  status = val_pcie_find_vendor_dvsec(bdf, ARM_RME_VENDOR_ID, RMECDA_HEAD2_DVSEC_ID, &cap_base);
+  if (status == PCIE_SUCCESS)
   {
+    reg_offset = RMECDA_CTL1_OFFSET;
+  }
+  else if (status == PCIE_CAP_NOT_FOUND)
+  {
+    if (val_pcie_find_da_capability(bdf, &cap_base) != PCIE_SUCCESS)
+    {
        val_print(ACS_PRINT_INFO, " PCIe DVSEC Capability not presentfor BDF: 0x%x ", bdf);
        return 1;
+    }
+    reg_offset = RMEDA_CTL1;
+  }
+  else
+  {
+    val_print(ACS_PRINT_ERR, " Failed to read DVSEC headers for BDF: 0x%x", bdf);
+    return 1;
   }
 
   va = val_get_free_va(val_get_min_tg());
   cfg_addr = val_pcie_get_bdf_config_addr(bdf);
+
+  if (cfg_addr == 0u)
+    return 1;
+
+  val_pcie_read_cfg(bdf, cap_base + reg_offset, &reg_value);
+  write_value = reg_value & ~0x1u;
   attr = LOWER_ATTRS(PGT_ENTRY_ACCESS | SHAREABLE_ATTR(OUTER_SHAREABLE)
                   | GET_ATTR_INDEX(DEV_MEM_nGnRnE) | PGT_ENTRY_AP_RW);
 
@@ -2306,12 +2681,12 @@ uint32_t val_pcie_disable_tdisp(uint32_t bdf)
     return 1;
   }
   shared_data->num_access = 1;
-  shared_data->shared_data_access[0].addr = va + cap_base + 0xC;
+  shared_data->shared_data_access[0].addr = va + cap_base + reg_offset;
   shared_data->shared_data_access[0].access_type = WRITE_DATA;
-  shared_data->shared_data_access[0].data = 0;
+  shared_data->shared_data_access[0].data = write_value;
   if (val_pe_access_mut_el3())
   {
-    val_print(ACS_PRINT_ERR, " MUT Access failed for 0x%llx", (va + cap_base + 0xC));
+    val_print(ACS_PRINT_ERR, " MUT Access failed for 0x%llx", (va + cap_base + reg_offset));
     return 1;
   }
 
@@ -2426,8 +2801,13 @@ uint32_t val_pcie_rp_sec_prpty_check(uint64_t *register_entry_info)
 {
   REGISTER_INFO_TABLE *register_entry;
   uint32_t bdf;
+  uint64_t tg;
+  uint64_t reg_pa_page;
+  uint64_t pgt_attr_el3;
   uint32_t rd_data = 0;
   uint32_t data_rt, data_ns, org_data;
+  uint32_t ret = 0;
+  uint32_t tdisp_enabled = 0;
 
   register_entry = (REGISTER_INFO_TABLE *)register_entry_info;
 
@@ -2449,6 +2829,30 @@ uint32_t val_pcie_rp_sec_prpty_check(uint64_t *register_entry_info)
       val_print(ACS_PRINT_INFO, " TDISP_EN not enabled for BDF: 0x%x ", bdf);
       return 1;
   }
+  tdisp_enabled = 1;
+
+  /*
+   * Map the target register page into EL3 before MUT access.
+   * CXL IDE_KM addresses are MMIO and must be EL3-mapped explicitly.
+   */
+  tg = val_get_min_tg();
+  reg_pa_page = register_entry->address & ~(tg - 1u);
+  if (val_add_gpt_entry_el3(reg_pa_page, GPT_ANY))
+  {
+      val_print(ACS_PRINT_ERR, " EL3 GPT mapping failed for reg page: 0x%llx", reg_pa_page);
+      ret = 1;
+      goto cleanup;
+  }
+
+  pgt_attr_el3 = LOWER_ATTRS(PGT_ENTRY_ACCESS | SHAREABLE_ATTR(OUTER_SHAREABLE) |
+                             GET_ATTR_INDEX(DEV_MEM_nGnRnE) | PGT_ENTRY_AP_RW |
+                             PAS_ATTR(ROOT_PAS));
+  if (val_add_mmu_entry_el3(reg_pa_page, reg_pa_page, pgt_attr_el3))
+  {
+      val_print(ACS_PRINT_ERR, " EL3 MMU mapping failed for reg page: 0x%llx", reg_pa_page);
+      ret = 1;
+      goto cleanup;
+  }
 
   switch (register_entry->property)
   {
@@ -2464,7 +2868,8 @@ uint32_t val_pcie_rp_sec_prpty_check(uint64_t *register_entry_info)
           if (val_pe_access_mut_el3())
           {
             val_print(ACS_PRINT_ERR, " MUT access failed for 0x%llx", register_entry->address);
-            return 1;
+            ret = 1;
+            goto cleanup;
           }
 
           /* Read the address from the NS */
@@ -2474,7 +2879,8 @@ uint32_t val_pcie_rp_sec_prpty_check(uint64_t *register_entry_info)
           if (rd_data != data_rt)
           {
               val_print(ACS_PRINT_ERR, " Read is not succesfull from NS for bdf: 0x%x", bdf);
-              return 1;
+              ret = 1;
+              goto cleanup;
           }
 
           /* Write data from NS */
@@ -2485,7 +2891,8 @@ uint32_t val_pcie_rp_sec_prpty_check(uint64_t *register_entry_info)
           if (rd_data == data_rt)
           {
               val_print(ACS_PRINT_ERR, " Read is succesfull from NS for bdf: 0x%x", bdf);
-              return 1;
+              ret = 1;
+              goto cleanup;
           }
 
           /* Restore the original data */
@@ -2496,7 +2903,8 @@ uint32_t val_pcie_rp_sec_prpty_check(uint64_t *register_entry_info)
           if (val_pe_access_mut_el3())
           {
             val_print(ACS_PRINT_ERR, " MUT access failed for 0x%llx", register_entry->address);
-            return 1;
+            ret = 1;
+            goto cleanup;
           }
 
           rd_data = 0;
@@ -2509,7 +2917,8 @@ uint32_t val_pcie_rp_sec_prpty_check(uint64_t *register_entry_info)
           if (val_pe_access_mut_el3())
           {
             val_print(ACS_PRINT_ERR, " MUT access failed for 0x%llx", register_entry->address);
-            return 1;
+            ret = 1;
+            goto cleanup;
           }
           org_data = shared_data->shared_data_access[0].data;
 
@@ -2526,7 +2935,8 @@ uint32_t val_pcie_rp_sec_prpty_check(uint64_t *register_entry_info)
           if (rd_data == data_rt)
           {
               val_print(ACS_PRINT_ERR, " Read is succesfull from NS for bdf: 0x%x", bdf);
-              return 1;
+              ret = 1;
+              goto cleanup;
           }
 
           /* Write the data_ns from NS */
@@ -2537,7 +2947,8 @@ uint32_t val_pcie_rp_sec_prpty_check(uint64_t *register_entry_info)
           if (rd_data == data_ns)
           {
               val_print(ACS_PRINT_ERR, " Write from NS is successfull for bdf: 0x%x", bdf);
-              return 1;
+              ret = 1;
+              goto cleanup;
           }
 
           /* Restore the original data */
@@ -2548,7 +2959,8 @@ uint32_t val_pcie_rp_sec_prpty_check(uint64_t *register_entry_info)
           if (val_pe_access_mut_el3())
           {
             val_print(ACS_PRINT_ERR, " MUT access failed for 0x%llx", register_entry->address);
-            return 1;
+            ret = 1;
+            goto cleanup;
           }
 
           rd_data = 0;
@@ -2556,10 +2968,35 @@ uint32_t val_pcie_rp_sec_prpty_check(uint64_t *register_entry_info)
 
     default:
       val_print(ACS_PRINT_ERR, " Invalid Security Property: %d", register_entry->property);
-      return 1;
+      ret = 1;
+      goto cleanup;
   }
 
-  return 0;
+cleanup:
+  if (tdisp_enabled)
+    (void)val_pcie_disable_tdisp(bdf);
+
+  return ret;
+}
+
+uint32_t
+val_pcie_get_link_exposure(uint32_t bdf, uint32_t *exposed)
+{
+  uint32_t status;
+
+  if (exposed == NULL)
+    return ACS_STATUS_ERR;
+
+  status = pal_link_get_exposure(PCIE_EXTRACT_BDF_SEG(bdf),
+                                 PCIE_EXTRACT_BDF_BUS(bdf),
+                                 PCIE_EXTRACT_BDF_DEV(bdf),
+                                 PCIE_EXTRACT_BDF_FUNC(bdf),
+                                 exposed);
+
+  if (status != 0u)
+    return ACS_STATUS_ERR;
+
+  return ACS_STATUS_PASS;
 }
 
 /**

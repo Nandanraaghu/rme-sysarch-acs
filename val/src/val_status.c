@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2023, 2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2023, 2025-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -95,7 +95,7 @@ val_set_status(uint32_t index, char8_t *state, uint32_t checkpoint)
 
   mem->checkpoint = checkpoint;
 
-  val_pe_cache_invalidate_range((addr_t)mem->state, sizeof(mem->state));
+  val_pe_cache_clean_invalidate_range((addr_t)mem->state, sizeof(mem->state));
   val_data_cache_ops_by_va((addr_t)&mem->checkpoint, CLEAN_AND_INVALIDATE);
 }
 

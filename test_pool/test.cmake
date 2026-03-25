@@ -1,5 +1,5 @@
 ## @file
- # Copyright (c) 2025, Arm Limited or its affiliates. All rights reserved.
+# Copyright (c) 2025-2026, Arm Limited or its affiliates. All rights reserved.
  # SPDX-License-Identifier : Apache-2.0
  #
  # Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,15 @@
      ${PAL_DIR}/include/
      ${PAL_DIR}/${TARGET}/src/
      ${PAL_DIR}/${TARGET}/include/
- )
+     ${ROOT_DIR}/tools/configs/
+)
+
+if(ENABLE_SPDM)
+  list(APPEND TEST_INCLUDE
+    ${LIBSPDM_INCLUDE_DIR}
+    ${SPDM_EMU_INCLUDE_DIR}
+  )
+endif()
 
  set(TEST_LIB ${EXE_NAME}_test_lib)
 
@@ -41,9 +49,8 @@
  list(APPEND COMPILE_LIST ${TEST_SRC})
  set(COMPILE_LIST ${COMPILE_LIST} PARENT_SCOPE)
 
- target_include_directories(${TEST_LIB} PRIVATE ${TEST_INCLUDE}
-
- )
+ target_include_directories(${TEST_LIB} PRIVATE ${TEST_INCLUDE})
+ target_compile_definitions(${TEST_LIB} PRIVATE ENABLE_SPDM=$<IF:$<BOOL:${ENABLE_SPDM}>,1,0>)
 
  create_executable(${EXE_NAME} ${BUILD}/output/ "")
  unset(TEST_SRC)

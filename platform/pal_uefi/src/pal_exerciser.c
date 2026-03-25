@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022, 2024-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2024-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -269,7 +269,7 @@ UINT32 pal_exerciser_set_param (
                 return 1;
           }
 
-     case ERROR_INJECT_TYPE:
+    case ERROR_INJECT_TYPE:
         pal_exerciser_find_error_injection_capability(Bdf, &CapabilityOffset);
         Data = pal_mmio_read(Ecam + CapabilityOffset +
                              pal_exerciser_get_pcie_config_offset(Bdf) + DVSEC_CTRL);
@@ -280,6 +280,25 @@ UINT32 pal_exerciser_set_param (
                 return 2;
         else
                 return 3;
+
+    case EXERCISER_CXL_CMD_OP:
+        pal_mmio_write(Base + CXL_CMD_OP, (UINT32)Value1);
+        rme_print(ACS_PRINT_DEBUG, L" CXL_CMD_OP write 0x%x", (UINT32)Value1);
+        return 0;
+
+    case EXERCISER_CXL_CMD_ADDR:
+        pal_mmio_write(Base + CXL_CMD_ADDR_LO, (UINT32)Value1);
+        pal_mmio_write(Base + CXL_CMD_ADDR_HI, (UINT32)(Value1 >> 32));
+        return 0;
+
+    case EXERCISER_CXL_CMD_DATA0:
+        pal_mmio_write(Base + CXL_CMD_DATA0_LO, (UINT32)Value1);
+        pal_mmio_write(Base + CXL_CMD_DATA0_HI, (UINT32)(Value1 >> 32));
+        return 0;
+
+    case EXERCISER_SEC_SID:
+        pal_mmio_write(Base + SEC_SID_CTL, (UINT32)(Value1 & 0x3u));
+        return 0;
 
       default:
           return 1;
@@ -335,6 +354,10 @@ pal_exerciser_get_param (
           return pal_mmio_read(Base + MSICTL) | MASK_BIT;
       case ATS_RES_ATTRIBUTES:
           *Value1 = pal_mmio_read(Base + ATS_ADDR);
+          return 0;
+      case EXERCISER_CXL_CMD_DATA0:
+          *Value1 = (UINT64)pal_mmio_read(Base + CXL_CMD_DATA0_LO);
+          *Value1 |= ((UINT64)pal_mmio_read(Base + CXL_CMD_DATA0_HI)) << 32;
           return 0;
       case CFG_TXN_ATTRIBUTES:
       case TRANSACTION_TYPE:
@@ -512,6 +535,23 @@ pal_exerciser_ops (
     case ATS_INV_CACHE:
         pal_mmio_write(Base + ATSCTL, ATS_INV);
         return 0;
+
+    case CXL_CMD_START:
+        UINT32 prev_status;
+
+        prev_status = pal_mmio_read(Base + CXL_CMD_STATUS);
+        rme_print(ACS_PRINT_DEBUG, L" CXL_CMD_START prev status 0x%x", prev_status);
+        pal_mmio_write(Base + CXL_CMD_CTRL, CXL_CMD_CTRL_GO);
+        rme_print(ACS_PRINT_DEBUG, L" CXL_CMD_CTRL write GO 0x%x", CXL_CMD_CTRL_GO);
+        for (UINT32 idx = 0u; idx < 10000u; ++idx)
+        {
+            data = pal_mmio_read(Base + CXL_CMD_STATUS);
+            if ((data & CXL_CMD_STATUS_DONE) != 0u)
+                return 0;
+            if ((data & CXL_CMD_STATUS_ERR) != 0u)
+                return 1;
+        }
+        return 1;
 
     case START_TXN_MONITOR:
         pal_mmio_write(Base + TXN_CTRL_BASE, TXN_START);

@@ -1,0 +1,6 @@
+[submodule "ext/spdm-emu"]
+	path = ext/spdm-emu
+	url = https://github.com/DMTF/spdm-emu
+[submodule "ext/libspdm"]
+	path = ext/libspdm
+	url = https://github.com/DMTF/libspdm

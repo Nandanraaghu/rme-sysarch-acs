@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -70,6 +70,7 @@
 #define IS_LEGACY_TZ_ENABLED_CT            0
 #define IS_NS_ENCRYPTION_PROGRAMMABLE_CT   0
 #define IS_PAS_FILTER_MODE_PROGRAMMABLE_CT 0
+#define IS_COHERENT_DA_SUPPORTED_CT        0
 
 /* Protected regions (GPC and PAS) */
 #define GPC_PROTECTED_REGION_CNT_CT          0x4
@@ -189,6 +190,7 @@
 #define IS_LEGACY_TZ_ENABLED            IS_LEGACY_TZ_ENABLED_CT
 #define IS_NS_ENCRYPTION_PROGRAMMABLE   IS_NS_ENCRYPTION_PROGRAMMABLE_CT
 #define IS_PAS_FILTER_MODE_PROGRAMMABLE IS_PAS_FILTER_MODE_PROGRAMMABLE_CT
+#define IS_COHERENT_DA_SUPPORTED        IS_COHERENT_DA_SUPPORTED_CT
 
 /* Protected region aliases */
 #define GPC_PROTECTED_REGION_CNT          GPC_PROTECTED_REGION_CNT_CT
@@ -283,14 +285,5 @@
   _(RT_REG_2_START_ADDR, RT_REG_2_SIZE) \
   _(RT_REG_3_START_ADDR, RT_REG_3_SIZE)
 
-#define EXPAND_REGISTER_INFO(type, bdf, addr, prop) \
-  {.type = type, .bdf = bdf, .address = addr, .property = prop},
-
-#define REGISTER_INFO_TABLE_ENTRIES(_)
-/* Example to override:
-#define REGISTER_INFO_TABLE_ENTRIES(_) \
-    _(PCIE_RP, 0x100, 0x880200000, RMSD_WRITE_PROTECT) \
-    _(INTERCONNECT, 0x000, 0x880201000, RMSD_PROTECT)
-*/
-
-#define PLATFORM_OVERRIDE_RP_REG_NUM_ENTRIES 0
+#define EXPAND_REGISTER_INFO(reg_type, reg_bdf, reg_addr, reg_prop) \
+  {.type = reg_type, .bdf = reg_bdf, .address = reg_addr, .property = reg_prop},

@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,6 @@
 **/
 
 /** Begin config **/
-
-/* Settings */
-#define PLATFORM_OVERRIDE_PRINT_LEVEL  0x3    //The permissible levels are 1,2,3,4 and 5
 
 /* MMU PGT config parameters */
 #define PLATFORM_PAGE_SIZE                 0x1000
@@ -163,10 +160,10 @@
 #define PLATFORM_OVERRIDE_PCIE_ECAM0_EP_BAR64       0x4000200000
 #define PLATFORM_OVERRIDE_PCIE_ECAM0_RP_BAR64       0x4000000000
 #define PLATFORM_OVERRIDE_PCIE_ECAM0_HB_BAR64       0x4000100000
-#define PLATFORM_OVERRIDE_PCIE_ECAM0_EP_NPBAR32     0x50400000
-#define PLATFORM_OVERRIDE_PCIE_ECAM0_EP_PBAR32      0x50000000
-#define PLATFORM_OVERRIDE_PCIE_ECAM0_RP_BAR32       0x50800000
-#define PLATFORM_OVERRIDE_PCIE_ECAM0_HB_BAR32       0x50C00000
+#define PLATFORM_OVERRIDE_PCIE_ECAM0_EP_NPBAR32     0x50200000
+#define PLATFORM_OVERRIDE_PCIE_ECAM0_EP_PBAR32      0x50800000
+#define PLATFORM_OVERRIDE_PCIE_ECAM0_RP_BAR32       0x50000000
+#define PLATFORM_OVERRIDE_PCIE_ECAM0_HB_BAR32       0x50100000
 
 #define PLATFORM_BM_OVERRIDE_PCIE_MAX_BUS      0x12
 #define PLATFORM_BM_OVERRIDE_PCIE_MAX_DEV      32
@@ -357,9 +354,17 @@
 #define PCI_MAX_DEVICE  31
 #define PASID_VAL       0x020
 #define ATSCTL          0x024
+#define SEC_SID_CTL     0x048
 #define TXN_TRACE       0x40
 #define TXN_CTRL_BASE   0x44
 #define ATS_ADDR        0x028
+#define CXL_CMD_OP      0x80
+#define CXL_CMD_CTRL    0x84
+#define CXL_CMD_STATUS  0x88
+#define CXL_CMD_ADDR_LO 0x8C
+#define CXL_CMD_ADDR_HI 0x90
+#define CXL_CMD_DATA0_LO 0x94
+#define CXL_CMD_DATA0_HI 0x98
 
 #define DVSEC_CTRL      0x8
 #define PCI_EXT_CAP_ID  0x10
@@ -396,6 +401,11 @@
 #define ERR_CODE_SHIFT         20
 #define FATAL_SHIFT            31
 #define ERROR_INJECT_BIT       17
+#define CXL_CMD_CTRL_GO        (1u << 0)
+#define CXL_CMD_CTRL_CLEAR_ERR (1u << 1)
+#define CXL_CMD_STATUS_DONE    (1u << 0)
+#define CXL_CMD_STATUS_BUSY    (1u << 1)
+#define CXL_CMD_STATUS_ERR     (1u << 2)
 
 #define PCI_CAP_PTR_OFFSET  8
 #define PCIE_CAP_PTR_OFFSET 20
@@ -437,6 +447,42 @@
 #define IS_NS_ENCRYPTION_PROGRAMMABLE 0x0
 
 #define IS_PAS_FILTER_MODE_PROGRAMMABLE 0x0
+
+#define IS_COHERENT_DA_SUPPORTED 0x1
+
+/* CXL host bridge and CFMWS platform override configuration. */
+#define PLATFORM_OVERRIDE_CXL_HOST_BRIDGE_COUNT      0x0
+#define PLATFORM_OVERRIDE_CXL_MAX_CFMWS_WINDOWS      0x2
+#define PLATFORM_OVERRIDE_CXL_MAX_ROOT_PORTS         0x4
+
+#define PLATFORM_OVERRIDE_CXL_HB0_UID                0x0
+#define PLATFORM_OVERRIDE_CXL_HB0_COMPONENT_BASE     0x66E000000ULL
+#define PLATFORM_OVERRIDE_CXL_HB0_COMPONENT_LENGTH   0x10000ULL
+#define PLATFORM_OVERRIDE_CXL_HB0_CFMWS_COUNT        0x1
+#define PLATFORM_OVERRIDE_CXL_HB0_CFMWS0_BASE        0x8C0000000ULL
+#define PLATFORM_OVERRIDE_CXL_HB0_CFMWS0_LENGTH      0x20000000ULL
+#define PLATFORM_OVERRIDE_CXL_HB0_CFMWS1_BASE        0x0ULL
+#define PLATFORM_OVERRIDE_CXL_HB0_CFMWS1_LENGTH      0x0ULL
+#define PLATFORM_OVERRIDE_CXL_HB0_RP_COUNT           0x3
+#define PLATFORM_OVERRIDE_CXL_HB0_RP0_BDF            0x300
+#define PLATFORM_OVERRIDE_CXL_HB0_RP1_BDF            0x400
+#define PLATFORM_OVERRIDE_CXL_HB0_RP2_BDF            0x500
+
+/*
+ * Root Ports not subject to host-side GPC (RKJYPB).
+ * Provide BDF values in PCIE_CREATE_BDF encoding (0xSSBBDDFF).
+ */
+#define CXL_RP_NOT_SUBJECT_TO_HOST_GPC_CNT 0x1
+#define CXL_RP_NOT_SUBJECT_TO_HOST_GPC_BDF_ENTRIES(_) _(0x400)
+
+/*
+ * CXL components that support CHI-C2C.
+ * Provide BDF values in PCIE_CREATE_BDF encoding (0xSSBBDDFF).
+ */
+#define CXL_CHI_C2C_SUPPORTED_CNT 0x2
+#define CXL_CHI_C2C_SUPPORTED_BDF_ENTRIES(_) \
+  _(0x00000500)                              \
+  _(0x00050000)
 
 #define GPC_PROTECTED_REGION_CNT 0x4
 
@@ -514,15 +560,16 @@
 #define EXPAND_RT_REG(base, size) \
     { .rt_reg_base_addr = base, .rt_reg_size = size },
 
-#define REGISTER_INFO_TABLE_ENTRIES(_)
-/* Example to override:
+
 #define REGISTER_INFO_TABLE_ENTRIES(_) \
-    _(PCIE_RP, 0x100, 0x880200000, RMSD_WRITE_PROTECT) \
-    _(INTERCONNECT, 0x000, 0x880201000, RMSD_PROTECT)
+/**
+    _(PCIE_RP, 0x300, 0x8ULL, RMSD_FULL_PROTECT) \
+    _(PCIE_RP, 0x300, 0x100ULL, RMSD_FULL_PROTECT) \
+    _(PCIE_RP, 0x300, 0x140ULL, RMSD_FULL_PROTECT)
 */
 
-#define EXPAND_REGISTER_INFO(type, bdf, addr, prop) \
-    { .type = type, .bdf = bdf, .address = addr, .property = prop },
+#define EXPAND_REGISTER_INFO(reg_type, reg_bdf, reg_addr, reg_prop) \
+    { .type = reg_type, .bdf = reg_bdf, .address = reg_addr, .property = reg_prop },
 
 /* Defines related to System memory */
 #define PLAT_MTE_PROTECTED_REGION_BASE      0xFFC00000ULL

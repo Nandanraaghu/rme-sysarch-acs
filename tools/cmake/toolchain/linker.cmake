@@ -1,5 +1,5 @@
 ## @file
- # Copyright (c) 2025, Arm Limited or its affiliates. All rights reserved.
+# Copyright (c) 2025-2026, Arm Limited or its affiliates. All rights reserved.
  # SPDX-License-Identifier : Apache-2.0
  #
  # Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,10 +44,33 @@ function (create_executable EXE_NAME OUTPUT_DIR TEST)
                     DEPENDS ${VAL_LIB} ${PAL_LIB} ${TEST_LIB})
     add_custom_target(CPP-LD-${EXE_NAME}${TEST} ALL DEPENDS CPP-LD--${EXE_NAME}${TEST})
 
+    get_target_property(VAL_LINK_LIBRARIES ${VAL_LIB} LINK_LIBRARIES)
+    if(NOT VAL_LINK_LIBRARIES)
+        set(VAL_LINK_LIBRARIES "")
+    endif()
+
+    set(VAL_LINK_ARCHIVES "")
+    foreach(lib ${VAL_LINK_LIBRARIES})
+        if(TARGET ${lib})
+            list(APPEND VAL_LINK_ARCHIVES $<TARGET_FILE:${lib}>)
+        else()
+            list(APPEND VAL_LINK_ARCHIVES ${lib})
+        endif()
+    endforeach()
+
+    set(LINK_GROUP
+        ${VAL_LIB}.a
+        ${PAL_LIB}.a
+        ${TEST_LIB}.a
+        ${VAL_LIB}.a
+        ${PAL_LIB}.a
+        ${PAL_OBJ_LIST}
+        ${VAL_LINK_ARCHIVES})
+
     # Link the objects
     add_custom_command(OUTPUT ${EXE_NAME}${TEST}.elf
-                    COMMAND ${GNUARM_LINKER} ${CMAKE_LINKER_FLAGS} -T ${SCATTER_OUTPUT_FILE} -o ${OUTPUT_DIR}/${EXE_NAME}.elf ${VAL_LIB}.a ${PAL_LIB}.a ${TEST_LIB}.a ${VAL_LIB}.a ${PAL_LIB}.a ${PAL_OBJ_LIST} -Map=${OUTPUT_DIR}/${EXE_NAME}.map
-                    DEPENDS CPP-LD-${EXE_NAME}${TEST})
+                    COMMAND ${GNUARM_LINKER} ${CMAKE_LINKER_FLAGS} -T ${SCATTER_OUTPUT_FILE} -o ${OUTPUT_DIR}/${EXE_NAME}.elf --start-group ${LINK_GROUP} ${GNUARM_LIBC} ${GNUARM_LIBM} ${GNUARM_LIBGCC} --end-group -Map=${OUTPUT_DIR}/${EXE_NAME}.map
+                    DEPENDS CPP-LD-${EXE_NAME}${TEST} ${VAL_LINK_LIBRARIES})
     add_custom_target(${EXE_NAME}${TEST}_elf ALL DEPENDS ${EXE_NAME}${TEST}.elf)
 
     # Create the dump info

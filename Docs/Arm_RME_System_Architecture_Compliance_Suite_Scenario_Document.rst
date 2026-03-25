@@ -15,51 +15,51 @@ Testcase checklist
   * - **Test Name**
     - **Validated rule(s)**
     - **Algorithm**
-  * - 
+  * -
 
       `rme_support_in_pe <../test_pool/rme/rme_support_in_pe.c>`_
 
-    - 
+    -
 
       RGSRPS: All A-profile application PEs in the system implement the Realm Management Extension (RME).
 
-    - 
+    -
 
       Read of ID_AA64PFR0_EL1.RME should return >= 1 for all PEs.
 
-  * - 
+  * -
 
       `rme_gprs_scrubbed_after_reset <../test_pool/rme/rme_gprs_scrubbed_after_reset.c>`_
 
-    - 
+    -
 
       RNULL: GPRs must be scrubbed after reset.
 
-    - 
+    -
 
       1. Select the Realm Security State of EL2 by writing to SCR_EL3.NSE and NS bit.
       2. Write GPR_WRITE_VAL to GPRs from x19-x29 using asm function and execute reset.
       3. Check if GPRs have retained their value or have they been scrubbed.
 
-  * - 
+  * -
 
       `rme_all_pe_has_feat_rng_or_rng_trap <../test_pool/rme/rme_all_pe_has_feat_rng_or_rng_trap.c>`_
 
-    - 
+    -
 
       RQYRGG: MSD and RMSD are provided with a private interface for accessing a True Random Number Generator (TRNG) that meets the certification profile of the system.
 
-    - 
+    -
 
       Check that all application PEs support FEAT_RNG or FEAT_RNG_TRAP by reading the bit[63:60] of ID_AA64ISAR0_EL1 and bits[31:28] of ID_AA64PFR0_EL1 against 0x1.
 
       If either of them is implemented, the test is expected to PASS.
 
-  * - 
+  * -
 
       `rme_gpc_for_system_resource <../test_pool/rme/rme_gpc_for_system_resource.c>`_
 
-    - 
+    -
 
       RBJVZS: An access to a Resource is associated with an Access PAS in accordance with the PAS Access Table.
 
@@ -67,15 +67,15 @@ Testcase checklist
 
       RDVPGT: A private PAS filter allows access to a register only if the Access PAS matches a Resource PAS that the register is associated with.
 
-    - 
+    -
 
       Accesses with same resource PAS and access PAS are successful otherwise generates fault.
 
-  * - 
+  * -
 
       `rme_coherent_interconnect_supports_cmo_popa <../test_pool/rme/rme_coherent_interconnect_supports_cmo_popa.c>`_
 
-    - 
+    -
 
       RXTSXB: An RME coherent interconnect supports cache maintenance operations to the PoPA.
 
@@ -84,7 +84,7 @@ Testcase checklist
       - Any dirty cached or transient state associated with the PA before the PoPA has been cleaned to after the PoPA.
       - Any cached or transient state associated with the PA before the PoPA has been invalidated.
 
-    - 
+    -
 
       Coherent interconnect supports CMO to PoPA.
 
@@ -99,32 +99,32 @@ Testcase checklist
       9. Issue CMO to PoPA for PA1 secure and nonsecure.
       10. Read of VA2 must return data4 (! = data2) (ciphertext of data3).
 
-  * - 
+  * -
 
       `rme_resources_aligned_to_granularity <../test_pool/rme/rme_resources_aligned_to_granularity.c>`_ & `rme_resources_are_not_physically_aliased <../test_pool/rme/rme_resources_are_not_physically_aliased.c>`_
 
-    - 
+    -
 
       RKGDVK: A Resource can be associated with a PAS using a Granule Protection Table if the following conditions are met:
 
       - There is only a single PA within each PAS through which the Resource can be reached and the value of the PA is the same across all physical address spaces.
       - The Resource can be assigned to a PAS at page granularity.
 
-    - 
+    -
 
       *rme_resources_aligned_to_granularity:* Check that the address range of resources (that need to be protected by GPT) are aligned to page granularity.
 
       *rme_resources_are_not_physically_aliased:* Check that the address range of resources (that need to be protected by GPT) are aligned to one another.
 
-  * - 
+  * -
 
       `rme_pe_do_not_have_arch_diff <../test_pool/rme/rme_pe_do_not_have_arch_diff.c>`_
 
-    - 
+    -
 
       RSQMWT: Application PEs in an RME system do not have architectural differences unless this is explicitly permitted by `RME_System_Architecture_Spec`_ specification.
 
-    - 
+    -
 
       Verify application PEs in an RME system do not have any architectural differences.
 
@@ -132,39 +132,39 @@ Testcase checklist
 
       CCSIDR_EL1, ID_AA64PFR0_EL1, ID_AA64PFR1_EL1, ID_AA64DFR0_EL1, ID_AA64DFR1_EL1, ID_AA64MMFR0_EL1, ID_AA64MMFR1_EL1, CTR_EL0, ID_AA64ISAR0_EL1, ID_AA64ISAR1_EL1, MPIDR_EL1, MIDR_EL1, ID_DFR0_EL1, ID_ISAR0_EL1, ID_ISAR1_EL1, ID_ISAR2_EL1, ID_ISAR3_EL1, ID_ISAR4_EL1, ID_ISAR5_EL1, ID_MMFR0_EL1, ID_MMFR1_EL1, ID_MMFR2_EL1, ID_MMFR3_EL1, ID_MMFR4_EL1, ID_PFR0_EL1, ID_PFR1_EL1, MVFR0_EL1, MVFR1_EL1, MVFR2_EL1, PMCEID0_EL0, PMCEID1_EL0, PMCR_EL0, PMBIDR_EL1, PMSIDR_EL1, ERRIDR_EL1, ERR0FR_EL1, ERR1FR_EL1, ERR2FR_EL1, ERR3FR_EL1, LORID_EL1
 
-  * - 
+  * -
 
       `rme_mte_region_in_root_pas <../test_pool/rme/rme_mte_region_in_root_pas.c>`_
 
-    - 
+    -
 
       RJYMQD: Allocation and protection of the address range assigned to an MTE carve-out are controlled by either SSD or MSD.
 
-    - 
+    -
 
       1. MTE carve-out region is not accessible by NS/S/RL accesses.
       2. NS, S and RL accesses to MTE carve-out region generate a fault (fault might not be generated).
 
-  * - 
+  * -
 
       `rme_encryption_for_all_pas_except_ns <../test_pool/rme/rme_encryption_for_all_pas_except_ns.c>`_
 
-    - 
+    -
 
       RQDPVN: Any PAS other than the Non-secure PAS must have encryption enabled.
 
-    - 
+    -
 
       1. PA1 marked as all access permitted.
       2. PA1 is mapped as VA1_S, VA2_NS, VA3_RL, VA4_RT.
       3. Store data1 using VA2_NS.
       4. Read of VA1_S, VA3_RL, VA4_RT must return unique values (!= data1).
 
-  * - 
+  * -
 
       `rme_pas_filter_functionality <../test_pool/rme/rme_pas_filter_functionality.c>`_
 
-    - 
+    -
 
       RBJVZS: An access to a Resource is associated with an Access PAS in accordance with the PAS Access Table
 
@@ -172,48 +172,48 @@ Testcase checklist
 
       RGDVSZ: A PA of an access to a memory-mapped peripheral is associated with a PAS until reaching the PAS filter assigned to protect the peripheral
 
-    - 
+    -
 
       All protected memory regions are accessible only when resource PAS & access PAS are same.
 
       Accesses with same resource PAS and access PAS are successful.
 
-  * - 
+  * -
 
       `rme_realm_smem_behaviour_after_reset <../test_pool/rme/rme_realm_smem_behaviour_after_reset.c>`_
 
-    - 
+    -
 
       RZQQSQ: SMEM that can be dynamically assigned to the Realm PAS, or the Secure PAS is either immediately assigned to the Root PAS or scrubbed on an RME system reset.
 
-    - 
+    -
 
       1. Verify Realm SMEM does not reveal old data after system reset.
       2. Returned data is not DATA1.
 
-  * - 
+  * -
 
       `rme_pcie_devices_support_gpc <../test_pool/rme/rme_pcie_devices_support_gpc.c>`_
 
-    - 
+    -
 
       RMZJXC: Every requester in the system is subjected to the PAS protection check
 
-    - 
+    -
 
       PCIe devices are subject to PAS protection check.
 
       DMA transactions to secure, root and realm memory will generate fault.
 
-  * - 
+  * -
 
       `rme_data_encryption_beyond_popa <../test_pool/rme/rme_data_encryption_beyond_popa.c>`_
 
-    - 
+    -
 
       RMLFBL (first part): External memory that is assigned to Secure PAS, Realm PAS, or Root PAS must be encrypted using a method that provides a different encryption context for each PAS
 
-    - 
+    -
 
       Data is encrypted when written in memory/any shared cache beyond PoPA.
 
@@ -225,15 +225,15 @@ Testcase checklist
       6. DATA1! = DATA2! = DATA3! = DATA4.
       7. Note: The third point of this rule is not validated in ACS.
 
-  * - 
+  * -
 
       `rme_data_encryption_with_different_tweak <../test_pool/rme/rme_data_encryption_with_different_tweak.c>`_
 
-    - 
+    -
 
       RMLFBL (second part): External memory that is assigned to Secure PAS, Realm PAS, or Root PAS must be encrypted using a method that provides a different address tweak for each encryption data block, such as a 128-bit memory block
 
-    - 
+    -
 
       Data is encrypted with a different tweak in each 128-bit of data block.
 
@@ -243,45 +243,45 @@ Testcase checklist
       4. Read PA1_NS+16 returns DATA3.
       5. DATA2 and DATA3 are different.
 
-  * - 
+  * -
 
       `rme_msd_smem_in_root_pas <../test_pool/rme/rme_msd_smem_in_root_pas.c>`_
 
-    - 
+    -
 
       RCSSDG: MSD SMEM is in the Root PAS.
 
-    - 
+    -
 
       MSD SMEM is in ROOT PAS.
 
       1. Access MSD SMEM with S, NS, RT & RL access PAS.
       2. Only RT accesses are successful.
 
-  * - 
+  * -
 
       `rme_realm_smem_in_realm_pas <../test_pool/rme/rme_realm_smem_in_realm_pas.c>`_
 
-    - 
+    -
 
-      RCMMCZ: Realm SMEM is in realm PAS (if Realm SMEM is defined statically).        
+      RCMMCZ: Realm SMEM is in realm PAS (if Realm SMEM is defined statically).
 
-    - 
+    -
 
       1. Verify that Realm SMEM is in realm PAS (if Realm SMEM is defined statically).
       2. Root, Secure and Non-secure access to Realm SMEM returns error.
 
-  * - 
+  * -
 
       `rme_snoop_filter_considers_pas <../test_pool/rme/rme_snoop_filter_considers_pas.c>`_ & `rme_memory_associated_with_pas_till_popa <../test_pool/rme/rme_memory_associated_with_pas_till_popa.c>`_
 
-    - 
+    -
 
       RWFQKD: A PA that targets memory that can be cached is associated with a PAS until reaching the PoPA.
 
       RFRMJJ: Where a PA is associated with a PAS, any PA compared operation includes the PAS.
 
-    - 
+    -
 
       *Test rme_memory_associated_with_pas_till_popa:*
 
@@ -296,11 +296,11 @@ Testcase checklist
       4. PE1 must not generate snoop access to PE0.
       5. As a result, update to PE0.
 
-  * - 
+  * -
 
       `rme_cmo_popa_for_cacheability_shareability <../test_pool/rme/rme_cmo_popa_for_cacheability_shareability.c>`_
 
-    - 
+    -
 
       RFXQCD: A PoPA CMO applies to any cache before the PoPA, including system caches that are located beyond the Point of Coherency.
 
@@ -309,7 +309,7 @@ Testcase checklist
       - The shareability domain it was cached with.
       - Whether the system supports a single or multiple Outer Shareable shareability domains
 
-    - 
+    -
 
       1. PA1 is marked as All Access Permitted.
       2. PA1 is initialized with random data.
@@ -321,15 +321,15 @@ Testcase checklist
       8. Issue CMO to PoPA for PA1 secure and nonsecure.
       9. Read of VA2 must return data4 (! = data2) (ciphertext of data3).
 
-  * - 
+  * -
 
       `rme_interconnect_supports_tlbi_pa <../test_pool/rme/rme_interconnect_supports_tlbi_pa.c>`_
 
-    - 
+    -
 
       RJRJSQ: An RME coherent interconnect complies with a Distributed Virtual Memory (DVM) version that supports Realm Translation Regimes and TLB Invalidate by PA operations.
 
-    - 
+    -
 
       Check interconnect supports TLBI PA operation by changing GPT entry.
 
@@ -339,15 +339,15 @@ Testcase checklist
       4. Issue TLBI PA as a part of undelegated algorithm.
       5. Access to VA1 will generate fault.
 
-  * - 
+  * -
 
       `rme_ns_encryption_is_immutable <../test_pool/rme/rme_ns_encryption_is_immutable.c>`_
 
-    - 
+    -
 
       RVSMPS: The decision to enable encryption for the Non-secure PAS is either hardwired or defined at boot and immutable once set.
 
-    - 
+    -
 
       1. NSencryption(enable=1).
       2. Once enabled then we cannot disable by calling NSencryption(enable=0).
@@ -361,15 +361,15 @@ Testcase checklist
       10. CMO to PoPA.
       11. Read of PA1 still returns data2.
 
-  * - 
+  * -
 
       `rme_pe_context_after_exit_wfi <../test_pool/rme/rme_pe_context_after_exit_wfi.c>`_ & `rme_pe_context_after_pe_suspend <../test_pool/rme/rme_pe_context_after_pe_suspend.c>`_
 
-    - 
+    -
 
       RMLJVR: On an exit from a low power state in which system context is preserved, power control guarantees that MSD state is fully preserved. If MSD state is not preserved, power control applies an RME system reset.
 
-    - 
+    -
 
       PE context must be preserved after exit from WFI or suspend.
 
@@ -385,27 +385,27 @@ Testcase checklist
       6. The same PE registers are checked against the saved values.
       7. The test expects the values to be similar and if so, test will PASS, otherwise will FAIL.
 
-  * - 
+  * -
 
       `rme_msd_save_restore_mem_in_root_pas <../test_pool/rme/rme_msd_save_restore_mem_in_root_pas.c>`_
 
-    - 
+    -
 
       RZNLSZ: Save/Restore operations for MSD state can only be done by MSD or a Trusted subsystem and use on-chip storage that is not accessible from Realm PAS, Secure PAS or Non-secure PAS.
 
-    - 
+    -
 
       MSD state save restore location is not accessible via S/NS/RL accesses.
 
-  * - 
+  * -
 
       `rme_rnvs_in_root_pas <../test_pool/rme/rme_rnvs_in_root_pas.c>`_
 
-    - 
+    -
 
       RQCHPW: The system supports a method for permanently blocking write access from application PEs to all RNVS parameters.
 
-    - 
+    -
 
       RNVS programming functions (memory mapped: RME_RNVS_MAILBOX_MEM) can only be accessed from Root PAS.
 
@@ -413,17 +413,17 @@ Testcase checklist
 
       Note: Review PAL function after implementation. We can test mailbox is not accessible from non-Root PAS.
 
-  * - 
+  * -
 
       `rme_root_wdog_from_root_pas <../test_pool/rme/rme_root_wdog_from_root_pas.c>`_ & `rme_root_wdog_fails_in_non_root_state <../test_pool/rme/rme_root_wdog_fails_in_non_root_state.c>`_
 
-    - 
+    -
 
       RZHBBL: The memory-mapped registers of a Root watchdog are in the Root PAS.
 
       RVXGBP: A Root watchdog can trigger an RME system reset when predefined expiration conditions are met.
 
-    - 
+    -
 
       Programming of Root watchdog, RT_WDOG_CTRL register, from ROOT state only will generate an interrupt.
 
@@ -431,72 +431,72 @@ Testcase checklist
 
       The rme_root_wdog_fails_in_non_root_state won't generate a watchdog interrupt when the Root watchdog is programmed from the non-Root PAS, in this case, from Non-Secure PAS.
 
-  * - 
+  * -
 
       `rme_pas_filter_in_inactive_mode <../test_pool/rme/rme_pas_filter_in_inactive_mode.c>`_
 
-    - 
+    -
 
       RDQTSG: An MPE or a PAS filter in a non-ACTIVE mode in which context is not fully retained blocks its operation and does not service requests until it is in ACTIVE mode again
 
-    - 
+    -
 
       PAS filter must block access to protected regions in Inactive mode.
-  
+
       1. Change ACTIVE mode of PAS filter (if supported).
       2. Access PA range that is monitored by PAS filter.
       3. Read of protected regions does not return data.
 
-  * - 
+  * -
 
       `rme_smmu_blocks_request_at_registers_reset <../test_pool/rme/rme_smmu_blocks_request_at_registers_reset.c>`_
 
-    - 
+    -
 
       RGFGZM: If a requester-side Granular PAS filter is in reset state, any requester that is associated with it is either in reset state or blocked from accessing memory.
 
-    - 
+    -
 
       If SMMU is in reset state it blocks all memory access requests from the devices attached to it.
 
       DMA accesses from Exerciser is blocked.
 
-  * - 
+  * -
 
       `rme_system_reset_propagation_to_all_pe <../test_pool/rme/rme_system_reset_propagation_to_all_pe.c>`_
 
-    - 
+    -
 
       RKKSQB: All A-profile application PEs in the system implement the Realm Management Extension (RME).
 
-    - 
+    -
 
       1. Write non-reset value to SCTLR_EL1/any other system register for all PEs.
       2. Apply system reset and check that the system register value is reset.
 
-  * - 
+  * -
 
       `rme_msd_smem_in_root_after_reset <../test_pool/rme/rme_msd_smem_in_root_after_reset.c>`_
 
-    - 
+    -
 
       RNXJLB: On an RME system reset MSD SMEM is either immediately assigned to the Root PAS or scrubbed and is available for access by the PE boot ROM as soon as it starts executing.
 
-    - 
+    -
 
       Apply system reset.
 
       Access using Root access PAS to Root SMEM is successful
 
-  * - 
+  * -
 
       `gic_its_subjected_to_gpc_check <../test_pool/gic/gic_its_subjected_to_gpc_check.c>`_
 
-    - 
+    -
 
       RNULL: GIC ITS memory accesses are only to non-secure memory.
 
-    - 
+    -
 
       1. Program ITT table base with Root PA.
       2. Generate access using ITS commands.
@@ -505,29 +505,29 @@ Testcase checklist
       5. Program ITT table base with Root PA and generate access using ITS commands.
       6. Expect faults for all the above accesses.
 
-  * - 
+  * -
 
       `smmu_implements_rme <../test_pool/smmu/smmu_implements_rme.c>`_
 
-    - 
+    -
 
       RNJRPC: An SMMU in an RME system complies with the `SMMU_RME_Spec`_ specification.
 
-    - 
+    -
 
       SMMU must implement RME.
 
       Check If SMMU_IDR0.RME_IMPL[30] == 0b1.
 
-  * - 
+  * -
 
       `smmu_responds_to_gpt_tlb <../test_pool/smmu/smmu_responds_to_gpt_tlb.c>`_
 
-    - 
+    -
 
       RJDBCS: An MMU-attached PAS filter in a non-ACTIVE mode either continues to respond to GPT cache invalidations, or invalidates any cached state when moving back to ACTIVE mode
 
-    - 
+    -
 
       SMMU must respond to GPT cache invalidate in In-active mode.
 
@@ -537,60 +537,60 @@ Testcase checklist
       4. Issue a DMA through SMMU.
       5. Observe new GPI value.
 
-  * - 
+  * -
 
       `legacy_tz_support_check <../test_pool/legacy_system/legacy_tz_support_check.c>`_
 
-    - 
+    -
 
       RKXMHF: A system that contains RME components, which have the LEGACY_TZ_EN input, will drive a common tie-off input value into all components.
 
       RCLKXF: A PE that supports the LEGACY_TZ_EN tie-off hides the RME capability if LEGACY_TZ_EN is TRUE and reverts all functionality defined by RME.
 
-    - 
+    -
 
       1. Turn on the LEGACY_TZ_EN input.
       2. The bit[52:55] of ID_AA64PFR0_EL1 register is checked for PE's RME implementation.
       3. The bit[30] of SMMU_IDR0 register is checked for SMMU's RME implementation.
       4. These bits are expected to be unset once LEGACY_TZ_EN is enabled.
 
-  * - 
+  * -
 
       `legacy_tz_en_drives_root_to_secure <../test_pool/legacy_system/legacy_tz_en_drives_root_to_secure.c>`_
 
-    - 
+    -
 
       RHCGZN: If LEGACY_TZ_EN is TRUE, PAS[1] is driven to 0b0 by any logic that enforces the PAS Access Table
 
-    - 
+    -
 
       When Legacy_TZ_En = True, all Root registers (Interconnect registers SAM registers, DMC- DRAM memory controllers, Timer register) that controls global functionality must be accessible using secure PAS only.
 
       Note: The partner has to provide the implementation details of the ROOT registers.
 
-  * - 
+  * -
 
       `legacy_tz_enable_before_resetv <../test_pool/legacy_system/legacy_tz_enable_before_reset.c>`_
 
-    - 
+    -
 
       RKQLKN: LEGACY_TZ_EN is not permitted to change value after RME system reset has been deasserted.
 
-    - 
+    -
 
       1. The bit[52:55] of ID_AA64PFR0_EL1 register is checked for PE's RME implementation.
       2. The bit[30] of SMMU_IDR0 register is checked for SMMU's RME implementation.
       3. These bits are expected to be RES0 once LEGACY_TZ_EN is enabled.
 
-  * - 
+  * -
 
       `legacy_tz_enable_after_reset <../test_pool/legacy_system/legacy_tz_enable_after_reset.c>`_
 
-    - 
+    -
 
       RKQLKN: LEGACY_TZ_EN is not permitted to change value after RME system reset has been deasserted.
 
-    - 
+    -
 
       1. The system reset is de-asserted.
       2. Enable LEGACY_TZ_EN.
@@ -598,51 +598,51 @@ Testcase checklist
       4. Check the bit[30] of SMMU_IDR0 register for SMMU's RME implementation.
       5. These bits are expected to remain set after the de-assertion of system reset, indicating that enabling LEGACY_TZ_EN has no effect.
 
-  * - 
+  * -
 
       `da_dvsec_register_config <../test_pool/da/da_dvsec_register_config.c>`_
 
-    - 
+    -
 
       RDVJRV: The RME-DA DVSEC is implemented in compliance with PCIe and has the following format
 
       RNWSJB: All Root Ports in an RME-DA system must implement the RME-DA DVSEC
 
-    - 
+    -
 
       1. For each function, read the RMEDA registers (DA Capability) and check the corresponding values and its attribute matches the `RME_System_Architecture_Spec` specification.
       2. No mismatch in both values and attribute properties of the registers
 
-  * - 
+  * -
 
       `da_smmu_implementation <../test_pool/da/da_smmu_implementation.c>`_
 
-    - 
+    -
 
       RNJRPC: An SMMU in an RME system complies with the `SMMU_RME_Spec`_ specification and, if the system supports RME-DA or MEC, with SMMU for RME-DA
 
-    - 
+    -
 
       1. For each SMMU in the system, check if the ROOT_IDR0 register has RME_IMPL set.
       2. The expected bit values should be set in SMMU
 
-  * - 
+  * -
 
       `da_tee_io_capability <../test_pool/da/da_tee_io_capability.c>`_
 
-    - 
+    -
 
       RLGXBX: An RME-DA Root Port sets the TEE-IO Supported bit in the Device Capabilities Register.
 
-    - 
+    -
 
       For all Root Ports in the system, the TEE-IO supported bit in the PCIe Extended Capability register should be set.
 
-  * - 
+  * -
 
       `da_rootport_ide_features <../test_pool/da/da_rootport_ide_features.c>`_
 
-    - 
+    -
 
       RGRCKL: An RME-DA Root Port supports the following IDE features:
 
@@ -650,34 +650,34 @@ Testcase checklist
       - At least three Address Association registers for each Selective IDE Stream.
       - The TEE-Limited Stream IDE capability.
 
-    - 
+    -
 
       1. For all RootPorts in the system, check at least one Selective IDE Stream is supported and TEE-Limited Stream is supported in the IDE Capability register.
       2. Check at least three Address Association registers in the Address association block.
       3. The RootPort should have all the expected values required for the IDE feature.
 
-  * - 
+  * -
 
       `da_attribute_rmeda_ctl_registers <../test_pool/da/da_attribute_rmeda_ctl_registers.c>`_
 
-    - 
+    -
 
       RDVJRV: The RME-DA DVSEC is implemented in compliance with PCIe.
 
-    - 
+    -
 
       1. Check the attribute of the RMEDA_CTRL register.
       2. The RSVDP fields and RW fields should behave as expected.
 
-  * - 
+  * -
 
       `da_p2p_btw_2_tdisp_devices <../test_pool/da/da_p2p_btw_2_tdisp_devices.c>`_
 
-    - 
+    -
 
       RMDPKR: When P2P traffic between two TDISP devices is routed through the Root Complex, then for any non-posted request that is forwarded by the Root Complex from a source peer to a target peer, the Root Complex must guarantee that the corresponding completion will be forwarded back to the source peer only if it arrived from the target peer.
 
-    - 
+    -
 
       Peer-to-Peer transaction between two TDISP devices must be handled correctly.
 
@@ -686,15 +686,15 @@ Testcase checklist
       3. Perform a Peer-to-Peer transaction.
       4. Check the competition is obtained only after it is arrived from the target peer.
 
-  * - 
+  * -
 
       `da_outgoing_request_with_ide_tbit <../test_pool/da/da_outgoing_request_with_ide_tbit.c>`_
 
-    - 
+    -
 
       RDVKPF: An outgoing request that has to be sent with IDE-Tbit==1 but that cannot be associated with a Selective IDE Stream that is Locked and in the IDE Secure state, is rejected with error by the RP
 
-    - 
+    -
 
       Outgoing request with IDE-Tbit must be rejected by RootPort.
 
@@ -703,11 +703,11 @@ Testcase checklist
       3. Map the BAR to Root PAS and read the data at BAR address from Root world.
       4. The request should be rejected by the RootPort.
 
-  * - 
+  * -
 
       `da_incoming_request_ide_sec_locked <../test_pool/da/da_incoming_request_ide_sec_locked.c>`_
 
-    - 
+    -
 
       RKZBHV: When RMEDA_CTL1.TDISP_EN==1, the RP permits an incoming request to have IDE-Tbit==1 if it arrived on a Selective IDE Stream that is Locked and in the IDE Secure state or if this is enabled by an IMPLEMENTATION DEFINED configuration that is controlled by MSD firmware or a Trusted subsystem, and otherwise rejects the request.
 
@@ -726,7 +726,7 @@ Testcase checklist
       - If the request must be sent with IDE-Tbit==1, the RCiEP sets SEC_SID to 0b10 (Realm). Otherwise the RCiEP sets SEC_SID to 0b00 (Non-secure).
       - SMMU StreamID and SubstreamID are set using the RID and PASID fields in accordance with `BSA_Spec`_ and `SBSA_Spec`_ specifications.
 
-    - 
+    -
 
       1. Establish an IDE stream in the RP and set the TDISP_EN to 1.
       2. Ensure the stream is in secure state.
@@ -736,39 +736,39 @@ Testcase checklist
       6. Generate a transaction with IDE-Tbit=0 should be rejected by RP.
       7. The incoming request should be permitted by the RP when IDE-Tbit = 1 and should be rejected when IDE-Tbit = 0.
 
-  * - 
+  * -
 
       `da_ctl_regs_rmsd_write_protect_property <../test_pool/da/da_ctl_regs_rmsd_write_protect_property.c>`_
 
-    - 
+    -
 
       RNPGJV: RMEDA_CTL registers must behave as write-protect.
 
-    - 
+    -
 
       1. Read the RMEDA_CTL registers and check if they can be updated from the Root world.
       2. Also check if they cannot be updated from the Secure and Non-Secure world.
       3. RMEDA_CTL registers should behave as write-protect.
 
-  * - 
+  * -
 
       `da_ide_state_rootport_error <../test_pool/da/da_ide_state_rootport_error.c>`_
 
-    - 
+    -
 
       RPJGJK: IDE stream must be transitioned to insecure state from secure state when RP has error.
 
-    - 
+    -
 
       1. Establish an IDE stream between the Exerciser EP and its RP.
       2. Inject an error from the exerciser which reaches the RP.
       3. The IDE stream should be transitioned to insecure state from secure state.
 
-  * - 
+  * -
 
       `da_ide_state_tdisp_disable <../test_pool/da/da_ide_state_tdisp_disable.c>`_
 
-    - 
+    -
 
       RRNQNM: When RMEDA_CTL1.TDISP_EN==0:
 
@@ -782,7 +782,7 @@ Testcase checklist
 
       RDNFTD: A PA of an access to a PCIe Root Port is associated with a PAS until reaching the Root Port.
 
-    - 
+    -
 
       1. Disable the TDISP_EN bit in the RP.
       2. Configure the exerciser EP under the RP to TDISP RUN state (IDE-Tbit = 1).
@@ -791,11 +791,11 @@ Testcase checklist
       5. Perform a read from PE from ROOT.
       6. Check if both the transaction are rejected and should be unsuccessful.
 
-  * - 
+  * -
 
       `da_selective_ide_register_property <../test_pool/da/da_selective_ide_register_property.c>`_
 
-    - 
+    -
 
       RYHQQL: When a Selective IDE register block is Unlocked (SEL_STR_LOCK is 0):
 
@@ -807,7 +807,7 @@ Testcase checklist
       - The block registers are RMSD write-detect
       - The associated Selective IDE Stream is in Locked state
 
-    - 
+    -
 
       IDE stream must be transitioned to Insecure state when Selective IDE register block is locked and re-configured.
 
@@ -816,15 +816,15 @@ Testcase checklist
       3. Re-Configure the IDE stream.
       4. Check that the IDE stream is transitioned to Insecure state which validates the RMSD write-detect property.
 
-  * - 
+  * -
 
       `da_rootport_tdisp_disabled <../test_pool/da/da_rootport_tdisp_disabled.c>`_
 
-    - 
+    -
 
       RHCMWC: The RMEDA_CTL registers are RMSD write-protect by hardware default.
 
-    - 
+    -
 
       IDE stream must be transitioned to Insecure state when TDISP_EN is disabled.
 
@@ -832,15 +832,15 @@ Testcase checklist
       2. Once done, set the TDISP_EN to 0.
       3. Check if the IDE stream is transitioned to Insecure state.
 
-  * - 
+  * -
 
       `da_autonomous_rootport_request_ns_pas <../test_pool/da/da_autonomous_rootport_request_ns_pas.c>`_
 
-    - 
+    -
 
       RMJNLW: Requests that are autonomously initiated by the RP over its host interface are tagged with PAS==Non-secure. Likewise, a request initiated by the RP over the PCIe interface must have IDE-Tbit==0.
 
-    - 
+    -
 
       RMSD write-detect property must be validated.
 
@@ -851,11 +851,11 @@ Testcase checklist
       5. Check that the interrupt is not serviced in NS world when ITT is mapped to ROOT.
       6. Check that the interrupt is serviced in NS world when ITT is mapped to NS.
 
-  * - 
+  * -
 
       `da_incoming_request_ide_non_sec_unlocked <../test_pool/da/da_incoming_request_ide_non_sec_unlocked.c>`_
 
-    - 
+    -
 
       RKZBHV: When RMEDA_CTL1.TDISP_EN==1, the RP permits an incoming request to have IDE-Tbit==1 if it arrived on a Selective IDE Stream that is Locked and in the IDE Secure state or if this is enabled by an IMPLEMENTATION DEFINED configuration that is controlled by MSD firmware or a Trusted subsystem, and otherwise rejects the request.
 
@@ -864,24 +864,24 @@ Testcase checklist
       - If the request must be sent with IDE-Tbit==1, the RCiEP sets SEC_SID to 0b10 (Realm). Otherwise the RCiEP sets SEC_SID to 0b00 (Non-secure).
       - SMMU StreamID and SubstreamID are set using the RID and PASID fields in accordance with `BSA_Spec`_ and `SBSA_Spec`_ specifications.
 
-    - 
+    -
 
       1. Set the TDISP_EN to 1.
       2. Perform a DMA transaction with IDE-Tbit = 1.
       3. Generate a transaction with IDE-Tbit=1 should be rejected by RP.
       4. The incoming request should be rejected by the RP when IDE-Tbit = 1, but not in secure state and locked state.
 
-  * - 
+  * -
 
       `da_outgoing_realm_rqst_ide_tbit_1 <../test_pool/da/da_outgoing_realm_rqst_ide_tbit_1.c>`_ & `da_ide_tbit_0_for_root_request <../test_pool/da/da_ide_tbit_0_for_root_request.c>`_
 
-    - 
+    -
 
       RCFQBW: IDE-Tbit for an outgoing PCIe Memory Request or Configuration Request is set based on the request PAS: If PAS is Realm or Root then IDE-Tbit is 1 and otherwise it is 0.
 
       RGBVTS: As a completer of memory requests a TDISP-compliant RCiEP extracts the request IDE-Tbit from the request PAS: If PAS is Realm or Root then IDE-Tbit is 1, otherwise it is 0.
 
-    - 
+    -
 
       1. Retrieve the BAR of the Endpoint (skipping this step if the Endpoint lacks an MMIO BAR), identify the RootPort for the Endpoint, and enable the TDISP_EN bit in the RME-DA DVSEC register.
       2. Map the BAR address to Realm PAS, establish an IDE Stream between the RootPort and Endpoint, and transition the Endpoint to the TDISP RUN state.
@@ -895,11 +895,11 @@ Testcase checklist
 
       Similarly, the request should also be allowed by the RootPort when the BAR address is mapped to Non-Secure PAS.
 
-  * - 
+  * -
 
       `da_rmsd_write_detect_property <../test_pool/da/da_rmsd_write_detect_property.c>`_
 
-    - 
+    -
 
       RPCRFM: When RMEDA_CTL1.TDISP_EN==1 the following registers are RMSD write-detect:
 
@@ -912,7 +912,7 @@ Testcase checklist
       - A reset or loss of state of a write-detect, write-protect or full-protect register.
       - A reset or loss of state of a Root Port component that affects the RME security guarantee.
 
-    - 
+    -
 
       IMPLEMENTATION DEFINED registers that can impact the RME security guarantee and that must be programmed by Non-secure state.
 
@@ -923,11 +923,11 @@ Testcase checklist
       3. Modify the RP configuration registers.
       4. Check the write-detect property by ensuring the IDE stream is transitioned to Insecure state.
 
-  * - 
+  * -
 
       `da_rootport_write_protect_full_protect_property <../test_pool/da/da_rootport_write_protect_full_protect_property.c>`_
 
-    - 
+    -
 
       RXHMDQ: When RMEDA_CTL1.TDISP_EN==1 the following registers are RMSD write-protect:
 
@@ -946,7 +946,7 @@ Testcase checklist
       - Registers that store IDE confidential information, for example Initialization Vectors (IV) or IMPLEMENTATION DEFINED confidential state.
       - Registers that store payload from TLPs that have IDE-Tbit==1.
 
-    - 
+    -
 
       1. Verify that the implementation-defined root port registers identified as RMSD write/full-protect are writable when the RMEDA_CTL1.TDISP_EN register is disabled.
       2. When TDISP_EN is enabled, validate that these registers are protected against write access from NS.
@@ -954,25 +954,538 @@ Testcase checklist
 
       Note: The addresses of these registers are retrieved from the PAL, and their write-protect/full-protect behavior is tested by attempting write operations.
 
-  * - 
+  * -
 
       `da_interconnect_regs_rmsd_protected <../test_pool/da/da_interconnect_regs_rmsd_protected.c>`_
 
-    - 
+    -
 
       RTTPLM: Interconnect registers mapping PAs to PCIe Root Ports must be MSD-Protected and accessible only from MSD domain.
 
-    - 
+    -
 
       1. Validate that the interconnect registers responsible for mapping PAs to PCIe Root Ports are implemented as MSD-Protected registers and ensure that they are accessible exclusively from the MSD domain.
       2. Retrieve the register addresses as provided by the PAL implementation and attempt to access them from both MSD and non-MSD domains.
       3. Access to the registers should succeed when performed from the MSD domain, whereas access from non-MSD domains should fail with an appropriate fault or error.
 
-  * - 
+  * -
+
+      `cda_rjzqcp_reset_transition <../test_pool/cda/cda_rjzqcp_reset_transition.c>`_
+
+    -
+
+      RJZQCP: Upon any device reset or power state transition that has one or more of the following consequences:
+
+      - May affect the confidentiality or integrity of any Location in the Realm PAS, for example memory contents at rest or in transit.
+      - Resets cache state or invalidates cache lines without a write-back
+      - Resets coherency structures state
+      - Resets a protected register or any context that was configured by DSM, for example PAS filter or encryption context.
+
+      an RME-CDA coherent device guarantees the following:
+
+      - The IDE Stream transitions to Insecure state.
+      - All TDIs transition to the TDISP ERROR state and are then permitted to transition to CONFIG_UNLOCKED state, in compliance with [4].
+      - Memory encryption keys are reset to a known default value.
+        - Subsequently, device completer-side PAS filters are permitted to transition all DCM Locations from the Realm PAS to the Non-secure PAS.
+      - The device is permitted to clean and invalidate device caches upon the event.
+        - If clean and invalidate of device caches does not occur upon the event, it still occurs when the associated TDIs transition to CONFIG_UNLOCKED state, in compliance with RLMFLX.
+        - Write-backs that occur during cache invalidation are not guaranteed to complete successfully, as the device-side PAS check might fail these.
+
+    -
+
+      1. Establish a CXL IDE link to the downstream endpoint and lock the endpoint TSP instance via SPDM.
+      2. Trigger an endpoint reset (FLR if supported, else Secondary Bus Reset).
+      3. After reset, verify Link IDE stream states are Insecure and the TSP instance is not CONFIG_LOCKED.
+
+      Note: This scenario requires SPDM/DOE support to query and configure CXL-TSP.
+
+  * -
+
+      `cxl_host_port_rmsd_write_protect <../test_pool/cxl/cxl_host_port_rmsd_write_protect.c>`_
+
+    -
+
+      RVSFPJ: When RMECDA_CTL1.TDISP_EN==1 the following registers in a coherent host port are RMSD write-protect:
+
+      - Any host port register that can impact the RME security guarantee and that must be programmed by Non-secure state. For example:
+      - Host port registers that perform address translation between system hardware address space and CXL address space.
+      - CXL or PCIe configuration space registers that are not allowed to be modified when an IDE Stream is bound to a TDI as specified in CXL [6].
+      - For example, CXL Extended Security Capability registers and CXL HDM Decoder Capability registers.
+      - IMPLEMENTATION DEFINED registers that can impact the RME security guarantee and are programmed by MSD firmware or a Trusted subsystem. For Example:
+      - Registers that allow reading or modifying any Transaction Layer Packet (TLP) parameters, such as its address or data, or that may lead to a drop, corrupt, replay or reorder of a TLP,
+      - Before IDE is applied (for host-to-device packets) or,
+      - After the IDE check (for device-to-host packets).
+      - Registers that control transaction Poison state.
+      - Registers that define the method of signaling an Unsupported Request (UR) over the host interface.
+      - A register that controls the port ID or the Segment Number of the host port.
+      - Registers that may affect the correctness of IDE functionality, for example error injection controls.
+
+      In cases where the coherent host port is a CXL Root Port, this rule also applies to the associated CXL Host bridge.
+
+      RDWRKS: When RMECDA_CTL1.TDISP_EN==1 for a CXL Root Port, the following registers are RMSD write-protect, in addition to the registers specified in RVSFPJ:
+
+      - CXL Root Port configurations that must be protected as specified by CXL-TSP [6], for example:
+      - HDM decoder registers
+      - CXL BI Decoder register
+      - CXL Extended Security Capability registers (Device Trust Level)
+
+      See also:
+
+      - B2.0.1.2 Coherent host port registers
+
+    -
+
+      1. Enumerate coherent CXL host ports (root ports) that expose the RME-CDA DVSEC.
+      2. Enable TDISP and collect applicable host-port registers (CXL component registers and selected PCIe config registers).
+      3. Attempt to toggle each register from RMSD and confirm writes are blocked (write-protect); restore and disable TDISP.
+
+  * -
+
+      `cxl_rbytyv_root_port_pas_behavior <../test_pool/cxl/cxl_rbytyv_root_port_pas_behavior.c>`_
+
+    -
+
+      RBYTYV: For a CXL Root Port (CXL RP) in an RME system one of the following applies:
+
+      - The CXL RP supports the RME-CDA DVSEC.
+      - The CXL RP forces SEC_SID==Non-secure and PAS==Non-secure for any device-to-host request.
+        - In this case, the RP also rejects with error host-to-device requests with PAS==Realm, unless an IMPLEMENTATION DEFINED mechanism controlled by MSD firmware or a Trusted subsystem permits this.
+
+    -
+
+      1. Enumerate CXL Root Ports in the system.
+      2. For each root port that does not expose the RME-CDA DVSEC, select a downstream Type-2/Type-3 endpoint and enable CXL.mem; program host/endpoint HDM decoders for a CXL.mem window.
+      3. Validate host-to-device accesses: Non-secure PAS reads/writes succeed and Realm PAS reads/writes are rejected with error.
+      4. Validate device-to-host DMA is effectively forced to Non-secure by attempting DMA to Non-secure memory (passes) and Realm-assigned memory (rejected / payload not observed).
+
+  * -
+
+      `cxl_rcnslj_type3_no_tsp <../test_pool/cxl/cxl_rcnslj_type3_no_tsp.c>`_
+
+    -
+
+      RCNSLJ: An RME system can include a Type-3 memory expansion device that does not support CXL-TSP if all of the following are met:
+
+      - The CXL device memory is encrypted by a host-side MPE.
+      - The CXL device supports Component Measurement and Authentication (CMA).
+      - The CXL device memory integrity is either guaranteed by a host-side MPE that supports cryptographic integrity and replay protection, or all of the following are met:
+      - The CXL device and any switch that it is connected to are exclusively controlled by RMSD or MSD.
+      - This means that all memory-mapped configuration registers of the CXL device are effectively RMSD write-protect registers.
+      - This includes both IMPLEMENTATION DEFINED and CXL-specified registers such as HDM decoder registers.
+      - All non-PE requesters in the system, including coherent and non-coherent devices, access the CXL Type-3 device through a host node. UIO Direct P2P ([6]) is not enabled for the device.
+      - Back-invalidate snoops are not enabled for the device.
+
+    -
+
+      1. Identify CXL Type-3 devices that do not advertise CXL-TSP capability.
+      2. Verify the upstream root port exposes the RME-CDA DVSEC.
+      3. Confirm CMA-SPDM support via DOE discovery, Direct P2P memory enable is disabled, BI decoder is disabled, and HDM decoder global control is RMSD write-protect.
+
+  * -
+
+      `cxl_rdhwnr_link_stream_lock <../test_pool/cxl/cxl_rdhwnr_link_stream_lock.c>`_
+
+    -
+
+      RDHNWR: When RMECDA_CTL1.LINK_STR_LOCK is 0:
+
+      - The IDE capability structure registers do not have any register security property.
+      - The Coherent Link IDE Stream is in the Unlocked state.
+
+      When RMECDA_CTL1.LINK_STR_LOCK is 1:
+
+      - The IDE capability structure registers are RMSD write-protect.
+      - The Coherent Link IDE Stream is in the Locked state.
+
+    -
+
+      1. Select a CXL root port that implements both the RME-CDA DVSEC and the CXL IDE capability.
+      2. Clear RMECDA_CTL1.LINK_STR_LOCK and confirm CXL IDE control registers can be modified.
+      3. Set RMECDA_CTL1.LINK_STR_LOCK and confirm CXL IDE control register writes are rejected.
+
+  * -
+
+      `cxl_rfdvzc_tdisp_disable <../test_pool/cxl/cxl_rfdvzc_tdisp_disable.c>`_
+
+    -
+
+      RFDVZC: When RMECDA_CTL1.TDISP_EN transitions from 1 to 0 all IDE Streams transition to IDE Insecure state.
+
+    -
+
+      1. For each CXL root port that exposes the RME-CDA DVSEC, establish an IDE stream and enable TDISP.
+      2. Disable TDISP and verify all Link and Selective IDE streams report STREAM_STATE_INSECURE.
+      3. Verify the CXL IDE status register reports RX/TX states as Insecure.
+
+  * -
+
+      `cxl_rgbgqx_ctc_link_ide <../test_pool/cxl/cxl_rgbgqx_ctc_link_ide.c>`_
+
+    -
+
+      RGBGQX: A CTC coherent link that is exposed to physical attacks, for example external probing, manipulation of traffic or device detaching, must support link protection in the form of cryptographic encryption and integrity in compliance with CXL IDE [6].
+
+    -
+
+      1. Enumerate CXL root ports in the platform.
+      2. For each root port with an exposed link (platform-defined), verify the CXL IDE capability is present in CXL component registers.
+
+  * -
+
+      `cxl_rgvrqc_host_port_coverage <../test_pool/cxl/cxl_rgvrqc_host_port_coverage.c>`_
+
+    -
+
+      RGVRQC: The RME-CDA DVSEC is implemented in compliance with PCIe [4] and has the following format:
+
+      - 0x0000 RMECDA_ECH: See B2.0.1.2.1 RME-CDA Extended Capability Header
+      - 0x0004 RMECDA_HEAD1: See B2.0.1.2.2 RME-CDA DVSEC Header 1
+      - 0x0008 RMECDA_HEAD2: See B2.0.1.2.3 RME-CDA DVSEC Header 2
+      - 0x000C RMECDA_CTL1: See B2.0.1.2.4 RME-CDA Control register 1
+      - 0x0010 RMECDA_CTL2: See B2.0.1.2.5 RME-CDA Control register 2
+      - 0x0014 RMECDA_CTL3: See B2.0.1.2.6 RME-CDA Control register 3
+      - 0x0018 RMECDA_CTL4: See B2.0.1.2.7 RME-CDA Control register 4
+
+    -
+
+      1. Discover RME-CDA DVSEC instances on coherent root ports.
+      2. Validate that mandated DVSEC header fields and reserved bits match expected values and exhibit the expected read-only/reserved behavior.
+
+  * -
+
+      `cxl_rgtvgz_tdisp_enable_link_gate <../test_pool/cxl/cxl_rgtvgz_tdisp_enable_link_gate.c>`_
+
+    -
+
+      RGTVGZ: When RMECDA_CTL1.TDISP_EN==1, the host port handles a device-to-host request that has SEC_SID==Realm or PAS==Realm as follows:
+
+      - If RMECDA_CTL1.LINK_STR_LOCK==1 and the IDE Stream is in the Active state or IDE is not supported then the request is permitted.
+      - Otherwise, the host port handles the request as if RMECDA_CTL1.TDISP_EN==0 as described in RNYCLL.
+
+    -
+
+      1. Select a CHI-C2C-capable CXL root port that exposes the RME-CDA DVSEC and a downstream exerciser endpoint.
+      2. Establish an SPDM session, configure CXL IDE, enable TDISP, and set RMECDA_CTL1.LINK_STR_LOCK.
+      3. Generate a device-to-host request tagged as Realm and verify it is permitted when the IDE Stream is Active.
+      4. Disable IDE (IDE Stream Inactive) and verify the same device-to-host request is rejected (handled per RNYCLL).
+      5. Clear RMECDA_CTL1.LINK_STR_LOCK and verify the request is rejected.
+      6. Clear RMECDA_CTL1.TDISP_EN and verify the request is rejected.
+
+      Note: This scenario requires SPDM/DOE and a CHI-C2C capable endpoint for exercising Realm-tagged device-to-host traffic.
+
+  * -
+
+      `cxl_rhcqws_host_side_mpe <../test_pool/cxl/cxl_rhcqws_host_side_mpe.c>`_
+
+    -
+
+      RHCQWS: A host-side MPE shall comply with initiator-based memory encryption requirements specified in CXL-TSP. For example, when handling a partial write, a MemRdFill should be used for the under fill read.
+
+    -
+
+      1. Select a Type-3 CXL.mem endpoint that does not advertise target-side encryption but supports MemRdFill (TSP Capable).
+      2. Enable MEC, program HDM decoders, and enable CXL.mem access.
+      3. Enable TDISP and set RMECDA_CTL1.LINK_STR_LOCK.
+      4. Write a 32-bit value, update a single byte, and read back the 32-bit value to confirm untouched bytes are preserved.
+
+      Note: This scenario requires SPDM/DOE support to query CXL-TSP capabilities.
+
+  * -
+
+      `cxl_rhhmvm_bisnp_pas_nonsecure <../test_pool/cxl/cxl_rhhmvm_bisnp_pas_nonsecure.c>`_
+
+    -
+
+      RHHMVM: If a CXL Root Port does not implement the RME-CDA DVSEC or has RMECDA_CTL1.TDISP_EN==0 then, for any Back-invalidate snoop request sent on the BISnp channel, the Root Port must tag the snoop with PAS==Non-secure.
+
+      A Root Port is permitted to reject the snoop if the access PA does not fall within the HDM range for the device.
+
+    -
+
+      1. Filter CXL Exerciser.
+      2. Program host and endpoint HDM decoders for a CXL.mem window and prepare one page in Realm PAS and one page in Non-secure PAS.
+      3. For each PAS, first write a host value through a cacheable host alias so the line is resident in host cache, then overwrite the same PA through the backdoor write path with a different vlue.
+      4. If the root port exposes the RME-CDA DVSEC, clear RMECDA_CTL1.TDISP_EN and RMECDA_CTL1.LINK_STR_LOCK before issuing BISnp.
+      5. Issue a BISnp command from the exerciser for the PA tagged with Realm PAS and expect to read cached value.
+      6. Issue a BISnp command from the exerciser for the PA tagged with Non-Secure PAS and expect to read updated value from CXL memory.
+
+  * -
+
+      `cxl_rhmxtf_host_hdm_decoder <../test_pool/cxl/cxl_rhmxtf_host_hdm_decoder.c>`_
+
+    -
+
+      RHMXTF: The system address range associated with a coherent host port must be controlled by one of the following:
+
+      - A dedicated CXL HDM decoder in a host bridge associated with that port.
+      - A dedicated RMSD write-protect or write-detect register associated with that port.
+
+    -
+
+      1. Select a host/root/endpoint combination that supports HDM decoder programming and has an available CFMWS window.
+      2. Program host and endpoint HDM decoders for the selected window and map a page.
+      3. Perform load/store to the mapped CXL.mem range and verify readback matches the written pattern.
+
+  * -
+
+      `cxl_rjsdvg_little_endian <../test_pool/cxl/cxl_rjsdvg_little_endian.c>`_
+
+    -
+
+      RJSDVG: All structures and fields defined by this specification use little-endian convention.
+
+    -
+
+      1. Enumerate root ports exposing Arm RME DVSECs (RME-DA and RME-CDA).
+      2. For each DVSEC register, read the 32-bit value using config-space access and independently assemble the value using byte reads.
+      3. Verify the assembled value matches the config-space value to confirm little-endian ordering.
+
+  * -
+
+      `cxl_rjxpzp_pas_ckid_mapping <../test_pool/cxl/cxl_rjxpzp_pas_ckid_mapping.c>`_
+
+    -
+
+      RJXPZP: A CXL Root Port that implements the RME-CDA DVSEC must support the following mapping function from {PAS, MECID} to {TEE-attribute, CKID} for CXL.mem requests:
+
+      - If PAS!=Realm and MECID >= RMECDA_CTL1.FIRST_TEE_CKID then report an Uncorrectable Error
+      - If PAS==Non-secure then:
+        - CKID = MECID
+        - TEE-attribute = 0
+        - If CKID > 0x1FFF then report an Uncorrectable Error.
+      - If PAS==Realm then:
+        - CKID = RMECDA_CTL1.FIRST_TEE_CKID + MECID
+        - TEE-attribute = 1
+        - If CKID > 0x1FFF then report an Uncorrectable Error.
+      - If PAS==Secure or PAS==Root then:
+        - Report an Uncorrectable Error
+
+    -
+
+      1. Select a CXL root port with RME-CDA DVSEC and a downstream Type-3 endpoint; program host and endpoint HDM decoders for a CXL.mem window.
+      2. Establish an SPDM session, configure and lock CXL-TSP with CKID-based encryption enabled, and enable MEC.
+      3. Vary PAS, MECID, and FIRST_TEE_CKID programming and generate CXL.mem accesses, validating that accesses succeed or fail according to the mapping rule.
+
+      Note: This scenario requires SPDM/DOE and MEC support.
+
+  * -
+
+      `cxl_rkjypb_cache_disable <../test_pool/cxl/cxl_rkjypb_cache_disable.c>`_
+
+    -
+
+      RKJYPB: If a CXL RP is not subject to GPC then CXL.cache must be disabled for it using an MSD-protected register.
+
+    -
+
+      1. Identify CXL Root Ports that are not subject to host GPC (platform-defined).
+      2. Locate the CXL Extended Security Capability and read the Device Trust Level (or equivalent policy) for the port.
+      3. Verify CXL.cache is disabled (for example, Device Trust Level is not set to Trusted).
+      4. Attempt to modify the policy from non-MSD PAS and confirm writes are blocked; verify the register is MSD-protected (or RMSD write-protect when TDISP is enabled).
+
+  * -
+
+      `cxl_rlqmcy_type3_host_mpe <../test_pool/cxl/cxl_rlqmcy_type3_host_mpe.c>`_
+
+    -
+
+      RLQMCY: In an RME system, if a Type-3 memory expansion device does not support target-side memory encryption then its memory must be encrypted by a host-side MPE.
+
+    -
+
+      1. Identify a Type-3 endpoint that does not advertise target-side encryption capability.
+      2. Enable MEC, enable CXL.mem, and program HDM decoders for a CXL.mem window.
+      3. Enable TDISP and set RMECDA_CTL1.LINK_STR_LOCK.
+      4. Write using MECID1, issue a CMO to PoE, then read using MECID2 and confirm the read data differs from the write data (host-side MPE observed).
+
+      Note: This scenario requires SPDM/DOE support to query CXL-TSP capabilities.
+
+  * -
+
+      `cxl_rnycll_tdisp_disable_reject <../test_pool/cxl/cxl_rnycll_tdisp_disable_reject.c>`_
+
+    -
+
+      RNYCLL: When RMECDA_CTL1.TDISP_EN==0:
+
+      - If a device-to-host memory request has SEC_SID==Realm or PAS==Realm the host port rejects with error the request.
+      - If a host-to-device memory request has PAS==Realm the host port rejects with error the request.
+
+    -
+
+      1. Select a CXL root port that exposes the RME-CDA DVSEC and a downstream CHI-C2C-capable exerciser endpoint.
+      2. Program host and endpoint HDM decoders for a CXL.mem window, enable CXL.mem, and disable TDISP (RMECDA_CTL1.TDISP_EN=0).
+      3. Verify host-to-device Non-secure PAS reads/writes succeed and host-to-device Realm PAS reads/writes are rejected with error.
+      4. Generate device-to-host requests tagged as Realm (SEC_SID==Realm or PAS==Realm) and verify the host port rejects them with error (payload not propagated).
+
+      Note: This scenario requires a CHI-C2C capable endpoint to generate device-to-host transactions with specific SEC_SID/PAS encodings.
+
+  * -
+
+      `cxl_rphcgc_rmsd_full_protect_property <../test_pool/cxl/cxl_rphcgc_rmsd_full_protect.c>`_
+
+    -
+
+      RPHCGC: When RMECDA_CTL1.TDISP_EN==1 the following registers are RMSD full-protect:
+
+      - IDE key programming registers.
+      - Registers that store IDE confidential information, for example Initialization Vectors (IV) or IMPLEMENTATION DEFINED confidential state.
+      - Registers that store payload from TLPs that have SEC_SID==Realm.
+
+    -
+
+      1. Enumerate platform-provided RMSD full-protect register descriptors for PCIe root ports.
+      2. Filter to descriptors that correspond to discovered CXL root ports.
+      3. Validate full-protect behavior by ensuring access is permitted only in the expected security state and blocked elsewhere.
+
+  * -
+
+      `cxl_rphwmm_rme_cda_tsp <../test_pool/cxl/cxl_rphwmm_rme_cda_tsp.c>`_
+
+    -
+
+      RPHWMM: A CXL Root Port that implements the RME-CDA DVSEC must comply with CXL-TSP.
+
+    -
+
+      1. For each root port that exposes the RME-CDA DVSEC, locate a downstream endpoint and establish an SPDM session.
+      2. Establish a CXL IDE link and configure memory encryption features via CXL-TSP.
+      3. Lock the endpoint TSP instance and verify the sequence completes without error.
+
+      Note: This scenario requires SPDM/DOE support.
+
+  * -
+
+      `cxl_rplcmc_type3_target_ckid <../test_pool/cxl/cxl_rplcmc_type3_target_ckid.c>`_
+
+    -
+
+      RPLCMC: A CXL-TSP Type-3 device that supports target-side memory encryption must comply with all of the following:
+
+      - Support the CKID-based Encryption capability.
+      - In an RME system with MEC: support a Number of CKIDs that does not significantly restricts the common MECID width of the system.
+        - For example, For a common MECID width of 9 then Number of CKIDs is at least 513, to allow for 512 TVMCKIDs and 1 OSCKID.
+
+    -
+
+      1. Determine the common MECID width supported across PEs and MEC-capable SMMUs.
+      2. Derive the minimum required CKID count from the common MECID width.
+      3. For each Type-3 device that advertises target-side encryption, query CXL-TSP capabilities via SPDM and ensure CKID-based encryption is supported and the CKID count meets the minimum.
+
+      Note: This scenario requires SPDM/DOE and MEC support.
+
+  * -
+
+      `cxl_rplykv_rdfwkw_rme_cda_dvsec <../test_pool/cxl/cxl_rplykv_rdfwkw_rme_cda_dvsec.c>`_
+
+    -
+
+      RPLYKV: All host ports in a system that supports Coherent RME-DA implement the RME-CDA DVSEC.
+
+      RDFWKW: A coherent host port that supports RME-DA implements the Coherent RME-DA DVSEC (RME-CDA DVSEC).
+
+    -
+
+      1. If coherent device assignment is supported, enumerate discovered CXL root ports.
+      2. Verify each coherent root port exposes the Arm RME-CDA DVSEC capability in config space.
+
+  * -
+
+      `cxl_rptggp_cmo_to_cxl_mem <../test_pool/cxl/cxl_rptggp_cmo_to_cxl_mem.c>`_
+
+    -
+
+      RPTGGP: If a PA of a PoE CMO or a PoPA CMO specifies a memory Location in a CXL Type-3 device, the host must guarantee that the CMO reaches any cache that is located before the CXL Root Port associated with the device. This includes caches that might exist within a host-side MPE.
+
+      If Back-invalidate snoops are enabled for the device, the host must guarantee that PoPA and PoE CMOs have the same effect on the device as a CMO to the PoC. That is, PoPA, PoE and PoC CMOs are all converted to the same CXL.mem semantic which guarantees that device-side caches are flushed.
+
+    -
+
+      1. Select a CXL exerciser endpoint and its upstream root port and program HDM decoders for a CXL.mem window.
+      2. Enable TDISP and set RMECDA_CTL1.LINK_STR_LOCK.
+      3. Dirty host cachelines by writing to the window, issue CMOs to PoPA and PoE, and verify a device-side read observes the written pattern.
+
+  * -
+
+      `cxl_rwpgjb_rmsd_write_protect_property <../test_pool/cxl/cxl_rwpgjb_rmsd_write_protect_property.c>`_
+
+    -
+
+      RWPGJB: The RMECDA_CTL registers are RMSD write-protect by hardware default.
+
+    -
+
+      1. Enumerate CXL root ports that expose RME-CDA DVSEC.
+      2. Attempt to write RMECDA_CTL1 and RMECDA_CTL2 from RMSD and confirm writes are blocked (write-protect).
+
+  * -
+
+      `cxl_rwyvcq_link_unlock_reject <../test_pool/cxl/cxl_rwyvcq_link_unlock_reject.c>`_
+
+    -
+
+      RWYVCQ: If RMECDA_CTL1.LINK_STR_LOCK==0, host-to-device requests that have PAS==Realm must not be associated with a Coherent Link IDE Stream and must be rejected with error by the host port. This means that writes are dropped and reads are responded with poison.
+
+    -
+
+      1. Program HDM decoders and enable CXL.mem for a selected Type-3 endpoint and upstream root port.
+      2. Clear RMECDA_CTL1.LINK_STR_LOCK and attempt Realm PAS CXL.mem accesses.
+      3. Verify Realm accesses do not modify memory and that AER logs a Poisoned TLP; verify Non-secure accesses succeed.
+
+  * -
+
+      `cxl_rxqhng_rid_range_reject <../test_pool/cxl/cxl_rxqhng_rid_range_reject.c>`_
+
+    -
+
+      RXQHNG: If RMECDA_CTL1.LINK_STR_LOCK==1, a device-to-host request is rejected with error by the host port if the Requester ID field of the request is less than the RMECDA_CTL4.RID_BASE or greater than RMECDA_CTL3.RID_LIMIT or if RMECDA_CTL4.RID_RANGE_VALID is 0.
+
+    -
+
+      1. Select a CHI-C2C capable root port with RME-CDA DVSEC and a downstream CXL exerciser endpoint.
+      2. Program RMECDA_CTL3/CTL4 RID base/limit and RID_RANGE_VALID, then set RMECDA_CTL1.LINK_STR_LOCK.
+      3. Issue DMA reads from the exerciser and verify requests outside the programmed RID range (or with RID_RANGE_VALID==0) are rejected.
+
+  * -
+
+      `cxl_rxwjnn_type3_link_ide <../test_pool/cxl/cxl_rxwjnn_type3_link_ide.c>`_
+
+    -
+
+      RXWJNN: If the link between a host node and a CXL memory expansion device is exposed to physical attacks, such as device detaching, external probing or external manipulation, then link protection using CXL IDE must be supported.
+
+    -
+
+      1. Enumerate Type-3 devices and resolve the upstream root port for each device.
+      2. For exposed links (platform-defined), verify the Type-3 component advertises the CXL IDE capability.
+
+  * -
+
+      `tdisp_rfpymv_vdm_response_check <../test_pool/tdisp/tdisp_rfpymv_vdm_response_check.c>`_
+
+    -
+
+      RFPYMV: On a successful completion of an Arm TDISP VDM request a
+      corresponding response message is returned by the device. Upon an
+      unsuccessful completion of a request, the TDISP_ERROR response message
+      is returned by the device.
+
+    -
+
+      1. Select CHI-C2C-capable Root Ports from the CXL component table.
+      2. For each Root Port, locate a downstream endpoint and skip if none.
+      3. Verify RME-CDA DVSEC on the Root Port and enable RMECDA_CTL1.TDISP_EN.
+      4. Establish an SPDM session to the downstream endpoint.
+      5. Send Arm VDM GET_VERSION / GET_DEV_PROP and validate success response.
+      6. If CONFIG_UNLOCKED, send SET_INTERFACE and validate success response.
+      7. Send a malformed Arm VDM request and expect a TDISP_ERROR response.
+      8. Close the SPDM session and disable TDISP on the Root Port.
+
+  * -
 
       `dpt_system_resource_valid_without_dpti <../test_pool/dpt/dpt_system_resource_valid_without_dpti.c>`_, `dpt_system_resource_valid_with_dpti <../test_pool/dpt/dpt_system_resource_valid_with_dpti.c>`_, `dpt_system_resource_invalid <../test_pool/dpt/dpt_system_resource_invalid.c>`_, `dpt_p2p_same_rootport_valid <../test_pool/dpt/dpt_p2p_same_rootport_valid.c>`_, `dpt_p2p_same_rootport_invalid <../test_pool/dpt/dpt_p2p_same_rootport_invalid.c>`_, `dpt_p2p_different_rootport_valid <../test_pool/dpt/dpt_p2p_different_rootport_valid.c>`_, `dpt_p2p_different_rootport_invalid <../test_pool/dpt/dpt_p2p_different_rootport_invalid.c>`_
 
-    - 
+    -
 
       RQRMPD: A translated access from a TDI that is assigned to Realm state is subject to DPT checks, unless where stated otherwise.
 
@@ -981,7 +1494,7 @@ Testcase checklist
       - DPT checks can be skipped.
       - GPC cannot be skipped
 
-    - 
+    -
 
       IDE-tagged transactions from Exerciser Endpoint must undergo DPT enforcement through R_SMMU.
 
@@ -992,16 +1505,16 @@ Testcase checklist
 
       Observations: The transaction initiated by the Exerciser passed through the R_SMMU and was subjected to DPT checks as expected.
 
-  * - 
+  * -
 
-      `mec_support_mecid_and_mecid_width <../test_pool/mec/mec_support_mecid_and_mecid_width.c>`_ 
+      `mec_support_mecid_and_mecid_width <../test_pool/mec/mec_support_mecid_and_mecid_width.c>`_
 
-    - 
+    -
 
       RBJVZS: An access to a Resource is associated with a MECID, in accordance with the rules specified in MEC section of `RME_PE_Spec`_ and `SMMU_RME_Spec`_ specification.
       IXQKRQ: Arm Recommends that all RME system components support the same MECID width, to avoid faulty behavior
 
-    - 
+    -
 
       1. Check that all requesters (PEs and SMMUs) support MEC.
       2. Read MECID width of all the requesters and establish a common MECID width - MECIDW.
@@ -1014,11 +1527,11 @@ Testcase checklist
       9. Read VA and store as data2.
       10. All requesters support MEC and data1 != data2.
 
-  * - 
+  * -
 
       `mec_mecid_assosiation_and_encryption <../test_pool/mec/mec_mecid_assosiation_and_encryption.c>`_
 
-    - 
+    -
 
       RTBZM: An access to a cacheable memory Location is associated with a MECID until reaching the PoE.
 
@@ -1026,7 +1539,7 @@ Testcase checklist
 
       RMYWVB: Data is encrypted before being written to external memory or to any shared cache that resides past the PoPA. In a system with MEC, data is encrypted before being written to external memory or to any shared cache that resides past the PoE
 
-    - 
+    -
 
       1. MAP VA to PA in Realm PAS.
       2. Write to VA with data1 with MECID1.
@@ -1034,17 +1547,17 @@ Testcase checklist
       4. Perform similar DMA transaction from a PCIE device to validate SMMU MECID tagging.
       5. data1 should not be equal to data2.
 
-  * - 
+  * -
 
       `mec_cmo_uses_correct_mecid <../test_pool/mec/mec_cmo_uses_correct_mecid.c>`_
 
-    - 
+    -
 
       RQBNJF: A PoPA CMO affects any cached copy in the system with the specified {PAS, PA} regardless of the MECID that it was cached with, in a system with MEC
 
       IMNGJT: In an RME system with MEC, RLCXDB also applies to any cached or transient state associated with the PA before the PoE
 
-    - 
+    -
 
       1. Map VA to PA in Realm PAS.
       2. Enable MEC, Sect MECID = MECID1.
@@ -1058,15 +1571,15 @@ Testcase checklist
       10. Read VA == data2(indicates cache was invalidated).
       11. Reads to VA in the above steps are as specified in the scenario.
 
-  * - 
+  * -
 
       `mec_effect_of_popa_cmo <../test_pool/mec/mec_effect_of_popa_cmo.c>`_
 
-    - 
+    -
 
       RKMNQX: Memory accesses resulting from a cache clean operation, due to cache maintenance operations and natural evictions, use the MECID that the entry was cached with.
 
-    - 
+    -
 
       Multi PE Variant 1:
 
@@ -1079,14 +1592,14 @@ Testcase checklist
           * - Enable MEC, Set MECID1
 
               Map VA to PA in Realm PAS
-            
+
               Write data1, Issue CMO to PoC
-            
+
               Set MECID2, issue CMO to PoC
             - Map VA to PA in Realm PAS
-          
+
               Enable MEC, Set MECID1
-            
+
               Read VA, read data == data1
 
 
@@ -1134,13 +1647,13 @@ Out of Compliance scope rules
 
 The following rules are out of compliance scope due to the following reasons:
 
-- No specific scenario possible. It is partially/fully tested as a part of other scenarios. 
+- No specific scenario possible. It is partially/fully tested as a part of other scenarios.
 - PE ACS has tested this feature using memory transaction from PE.
 - Lack of common debugger available for testing.
 - Other resources, like System PMU events, IDE_KM, RNVS registers are impdef.
 - Lack of non-a-profile processor for testing.
-- Dependency on Non-Arm IP/ implementation defined features. 
-- System ACS infra doesn't support coherent devices yet. 
+- Dependency on Non-Arm IP/ implementation defined features.
+- System ACS infra doesn't support coherent devices yet.
 
 .. list-table::
     :header-rows: 1
@@ -1150,180 +1663,178 @@ The following rules are out of compliance scope due to the following reasons:
       - **Rules**
     * - System PMU counters
       - RHRVJB: A system PMU counter that is accessible in the Secure PAS can only count events that are attributable to the Secure PAS or to the Non-secure PAS.
-      
+
         RBSZPN: A system PMU counter that is accessible in the Realm PAS can only count events that are attributable to the Realm PAS or to the Non-secure PAS.
-        
+
         RTMSNN: A system PMU counter that is accessible in the Root PAS can count events that are attributable to any PAS.
-        
+
         RMMPWY: A system PMU counter that is accessible in the Non-secure PAS can count events that are attributable to a specific PAS if there is a per-PAS authentication control that can permit events from that PAS to be counted.
-        
+
         RPLXZB: A per-PAS authentication control can be driven by a debug authentication interface signal or by a register accessible in the corresponding PAS or in the Root PAS.
-        
+
         RCFYKS: An event that is not explicitly associated with a PAS but can leak confidential information is implicitly associated with the Root PAS.
 
     * - Debug
       - RQSXBZ: RMSD external debugging and Root external debugging are disabled by default on a Secured Arm CCA system.
-      
+
         RHLTLK: RMSD external debugging can only be authorized following an RME system reset and before RMSD firmware is loaded and cannot change state until a subsequent RME system reset.
-        
+
         RXVNFV: Root external debugging can only be authorized following an RME system reset and before MSD firmware is loaded and cannot change state until a subsequent RME system reset.
-        
+
         RGTPGZ: When Root external debugging is enabled, the RNVS confidential parameters are either inaccessible, scrubbed, or populated with debug values.
-        
+
         RRHGKX: Access to a Secured Arm CCA system through an external debug or test interface, including debug access ports, JTAG ports, and scan interfaces is disabled by default. Debug access can be enabled following validation of a debug certificate or password which is injected via an external debug interface.
-        
+
         RQLPNL: When external debugging is enabled for any Security state, external requests to power-up a component within a level of the system hierarchy (PE, PE-Cluster, System) are permitted but must be executed by trusted power control.
 
     * - Hardware Enabled security
       - RNWQBJ: If HES is hosted as a tenant within a multi-tenant Trusted subsystem, HES functionality must be isolated from other tenants, such that tenants must not be able to monitor HES functionality or impact HES functionality or integrity.
-      
+
         RHJSSG: The HES implementation exposes a private interface to SSD components such as Trusted subsystems for requesting HES services.
-        
+
         RCGDVX: The HES implementation exposes a programming interface in the Root PAS, shared by all application PEs, allowing MSD and PE Initial boot ROM to request for HES services.
-        
+
         RBQPFG: HES has exclusive read and write access to RNVS confidential parameters.
-        
+
         RBTWVY: A measurement register can be either extended using a secure hash algorithm, locked, or reset.
-        
+
         RDFPJL: HES has exclusive access to extend, lock, and reliably obtain the value of a measurement register it owns.
-        
+
         RFWSRF: Once locked, a measurement cannot be further extended until it is reset.
-        
+
         RWYSLK: An RME system reset is the only method to reset a measurement owned by HES.
-        
+
         RXCRMH: On an RME system reset, HES state is reset to a known value, including all measurements and ephemeral cryptographic context.
 
     * - RAS
       - RGNGMB: Only SSD or MSD can control whether recording is performed for error records that might contain confidential information.
-      
+
         RGZTVL: Critical Error Interrupts (CI) must be wired to a Trusted subsystem that will respond with an RME system reset.
-        
+
         RLWVCX: An uncontainable error results in an RME system reset.
-        
+
         RJNBWJ: Only SSD or MSD can enable or disable the generation of a CI.
-        
+
         RXPCTR: Where an MPE provides support for integrity, if it detects an integrity error it can perform one of the following responses: Respond by returning poison back to the consumer and record the error as a deferred error. Respond with an in-band error response and record the error as an uncorrected error.
-        
+
         RHSVLQ: Only SSD or MSD must be able to control the abilities of detecting, propagating, and reporting MPE integrity errors.
-        
+
         RGZHTD: In addition to providing encryption and, where implemented, integrity capabilities, the MPE can pass poison information: Note: If a requester above the MPE defers errors by writing poison, then the MPE must be able to pass this value through to the memory system below it as poison. If a requester above the MPE consumes a memory location that has been marked as poison, either because of that access or a previous access, the MPE must pass that poison to consumer.
 
     * - RNVS
       - RWNPYD: A programming interface that allows read and write access to RNVS must be in the Root PAS.
-      
+
         RLMSSL: The system supports a method for permanently blocking read access from application PEs to RNVS confidential parameters.
-        
+
         RVXBYG: System support for any memory protection property reported in System Properties is immutable and applicable for all DRAM memory controllers in the system.
 
     * - Trusted System Control Processor
       - RSXCFK: A Trusted SCP is an on-chip control processor that is trusted by MSD and can access resources in the Root PAS.
-      
+
         RZHJQJ: A Trusted SCP is considered a Trusted subsystem and must meet the applicable security requirements, for example, supporting Secure boot and having attestable firmware.
-        
+
         RMZDXV: It is permitted for a Trusted SCP to have a mechanism to bypass a PAS filter which filters its transactions.
 
     * - DA
       - RWBJJT: TSM functionality in RME-DA is implemented within RMSD.
-      
+
         RBDLXG: An RME-DA Root Port exposes an IDE key programming interface for the following IDE key management (IDE_KM) data objects: KEY_PROG, K_SET_GO, K_SET_STOP
-        
+
         RVCRRM: An RME-DA Root Port must support IDE key refresh operations in compliance with [13].
-        
+
         RFSFST: The RP IDE logic must be able to detect that an IDE key set requires a refresh and perform one or more of the following: Assert a dedicated interrupt that will be delivered to a Trusted subsystem. Transition the corresponding IDE Stream to Insecure state.
-        
+
         RBWFTS: RMSD ensures that Selective IDE Streams are configured such that different IDE Streams are assigned with RID ranges and address ranges that are not overlapping.
-        
+
         RSWBSV: IDE-Tbit of PCIe messages is set as follows: For messages generated from DTI requests, IDE-Tbit is extracted from the DTI request in compliance with AMBA DTI Revision 3 (See: SMMU for RME-DA [6]). For Vendor-Defined messages, the IDE-Tbit is permitted to be 1 if the RP has a method to associate the message with the Root or Realm Security states. For any other message, IDE-Tbit is set to 0. For example, Power Management messages.
-        
+
         RCKJMN: IDE-Tbit for PCIe completions is set in compliance with IDE [13] and TDISP [8]. This means that: For ATS Translation Requests, the host will set the IDE-Tbit on the corresponding ATS Translation Completion to match the IDE-Tbit value of the request. For ATS-translated read requests the host will set the IDE-Tbit value on the corresponding read completion to match the value of the request, with the following exception: If a P2P read request with IDE-Tbit==1 is forwarded through the host to a non-TDISP device, the host is permitted but not required to set IDE-Tbit==0 on the corresponding completion.
-        
+
         RLMFSV: When RMEDA_CTL1.TDISP_EN==1, any RP debug functionality that might affect the RME security guarantee is disabled unless explicitly enabled by one of the following: An access to a write-protect register. An assertion of a debug authentication signal indicating that either RMSD external debugging or Root external debugging are enabled.
-        
+
         RQNTYC: The PCIe segment and RIDs that are allocated to an RCiEP are either defined statically or configured using an RMSD write-protect register.
 
     * - Miscellaneous
       - RDFYXL: In an RME system, any access by a requester and any instruction executed by a PE is associated with a single Security state.
-      
+
         RQDWVC: Either SSD or MSD controls Association of a Resource with a Resource PAS.
-        
+
         RSCDLL: Once assigned, the value of an Access PAS cannot be altered.
-        
+
         RWRGTF: Access to the Root PAS is only permitted for Trusted requesters.
-        
+
         RWJNMD: Granule Protection Check for on-chip Resources can only rely on Granule Protection Tables that are stored on-chip or are stored off-chip with equivalent level of integrity and replay protection.
-        
+
         RGQCQT: A Granule Protection Check that applies to non-idempotent locations does not permit any access to be speculatively performed to a non-idempotent location before the Granule Protection Check for the access is complete.
-        
+
         RBNSQB: An ECC-scrubbing engine located after the PoPA must not leak confidential information, for example through error record registers.
-        
+
         RRHBJN: The Security state of a non-PE requester that is not a Trusted subsystem can be either Secure or Non-Secure state.
-        
+
         RMCMSH: A fully coherent non-PE requester, which is not part of the System Security Domain (SSD), will not observe coherent traffic for addresses in the Secure, Realm, or Root PAS.
-        
+
         RRGQRT: If a programmable completer-side PAS filter can assign resources to all physical address spaces then: The registers that control the filter are in the Root PAS. On an RME system reset, Resources controlled by the filter are either assigned to the Root PAS or are reset to a known value.
-        
+
         RGLLZY: If a programmable completer-side PAS filter assigns resources only to the Secure PAS and Non-secure PAS then: The registers that control the filter are in the Secure PAS or in the Root PAS. On an RME system reset, Resources controlled by the filter are either assigned to the Secure PAS or the Root PAS or are reset to a known value.
-        
-        RJSDVG: All RME structures and fields use little-endian convention.
-        
+
         RSPLKT: The address ranges of MSD SMEM are either defined statically or defined by SSD following an RME system reset.
-        
+
         RZVQGS: The address ranges of SMEM assigned to the Realm PAS and Secure PAS are either defined statically or by SSD or MSD.
-        
+
         RZCJHY: The access control path that protects SMEM is not affected by state from non-shielded memory.
-        
+
         RXBKYB: All bus and interconnect decoding components between the point where the Access PAS is assigned and the PoPA are PAS tag aware.
-        
+
         RLCXDB: Completion of a PoPA CMO for a given PA guarantees that both: Any dirty cached or transient state associated with the PA before the PoPA has been cleaned to after the PoPA. Any cached or transient state associated with the PA before the PoPA has been invalidated.
-        
+
         RCMMDG: For any cache before the PoPA, cache prefetching across granule-boundary is allowed only after querying the GPC for the PAS association of the next granule.
-        
+
         RPSGCM: A cache maintenance operation performed on a clean cache entry never results with a write of entry content past the PoPA.
-        
+
         RKSPKN: Encryption keys used by MPE are stored in registers that are reset to a known default value on an RME system reset.
-        
+
         RYHXPH: An MPE integrity error is reported as an external abort to a software or hardware agent consuming the error.
-        
+
         RYJDSJ: Any captured details of an MPE integrity error are only visible to MSD.
-        
+
         RLPQSN: An MPE property that is reported through the System Properties structure in Root Non-volatile Storage (RNVS) is supported for all external memory ports in the system.
-        
+
         RVDFYZ: A register that is located outside of the Root PAS but can affect a service provided by MSD must be implemented as a measurable register.
-        
+
         RYLVDB: A measurable register is a write-lockable register that MSD has a trusted method to obtain its value.
-        
+
         RRFSYB: An RME system propagates a 2-bit MPAM_SP field to all MSCs that are either a Four-space MSC or have a PARTID space mapper.
-        
+
         RCFYBJ: An IMPLEMENTATION DEFINED property of an architecture extension, or an IMPLEMENTATION DEFINED difference between application PEs must not create an exposure that could break the RME security guarantee.
-        
+
         RXKBNZ: PE behavior is UNPREDICTABLE when the following are true: An IMPLEMENTATION DEFINED difference between application PEs is visible to software, for example through different System register values across PEs. There is a mismatch between the register value assumed by software running on a PE and the actual hardware value of the PE. An example where such mismatch could occur, is if software obtained the value by reading it on a different PE.
-        
+
         RLRQXZ: A software-initiated power state transition in an RME system at any level of the system hierarchy (PE, PE-cluster, System) is validated by MSD or by a Trusted subsystem.
-        
+
         RWJVRX: Save/Restore operations for MSD PE context can only be done by MSD or a Trusted subsystem and use storage that is not accessible from Realm, Secure and Non-secure states.
-        
+
         RMVZHF: Save/Restore operations for RMSD PE context can only be done by RMSD, MSD, or a Trusted subsystem and use storage that is not accessible from Secure and Non-secure states.
-        
+
         RRCLYM: Save/Restore operations for PE context of Secure state can only be done by MSD or a Trusted subsystem or software running in the Secure state and use storage that is not accessible from Realm and Non-secure states.
-        
+
         RGVJYZ: Any register that affects a system power policy or a hardware power mode is implemented as an MSD-Protected Register (MPR).
-        
+
         RKYXMR: Any power management operation that can affect MSD state or the RME security guarantee must be validated by MSD or a Trusted subsystem.
-        
+
         RHJHRL: On an RME system reset, all Trusted requesters and Trusted subsystems are reset. Any Trusted subsystem state that might include MSD or RMSD confidential information is reset to known values.
-        
+
         RHLKZP: An RME system reset might propagate to any component that implements RAS [6] as an Error recovery reset.
-        
+
         RSSGMJ: The reset of a system component that affects the RME security guarantee can only be controlled by MSD or a Trusted subsystem or driven by an RME system reset.
-        
+
         RCKBGZ: A legacy completer is attached to an RME IP by driving the NS signal of the completer from PAS [0] of the RME IP.
-        
+
         RYKSSD: A legacy requester is attached to an RME IP by driving PAS [0] of the RME IP from the NS signal of the legacy requester and driving PAS [1] of the RME IP to 0b0.
-        
+
         RYXFMV: A requester that is accessing memory-mapped resources not through a stage 1 or stage 2 MMU/SMMU must support a method that is enforced by SSD hardware for tagging accesses with an Access PAS, in accordance with the PAS Access Table (Table B2.1). For example: A Debug Access Port (DAP) can expose a programming register to an external debugger that allows setting an Access PAS to one of the permitted values, as implied by the debug authentication interface state, for any access that targets main memory or an APB peripheral. If the debug authentication interface permits RMSD external debugging but not Secure external debugging then DAP hardware would reject an attempt to program the register to Access PAS == Secure. Furthermore, if the debug authentication interface permits RMSD external debugging then DAP hardware can permit accesses with Access PAS == Realm to specify a programmed MECID.
-        
+
         RLYXGC: A CTC interface in a multi-chip RME system supports all of: Transport of the PAS tag with any access that specifies a physical address (PA). Transport of the MECID with any access that specifies a PA, if the RME system supports MEC. Transport of CMO and DVM messages that RME and MEC [1] specify.
-  
+
 
 
 License
@@ -1340,6 +1851,6 @@ RME System ACS is distributed under Apache v2.0 License.
 .. _PSCI_Spec: https://developer.arm.com/documentation/den0022/latest
 .. _GIC_Spec: https://developer.arm.com/documentation/ihi0069/latest
 .. _BSA_Spec: https://developer.arm.com/documentation/den0094/latest
-.. _SBSA_Spec: https://developer.arm.com/documentation/den0029/latest 
+.. _SBSA_Spec: https://developer.arm.com/documentation/den0029/latest
 .. _PCIE_Spec: PCI-SIG
 .. _TDISP_Spec: PCI-SIG

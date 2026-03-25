@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@
 #define __VAL_INTERFACE_H__
 
 #include "pal_interface.h"
+#include "val_cxl.h"
 #if defined(TARGET_EMULATION) || defined(TARGET_BM_BOOT)
 #include <stdint.h>
 #endif
@@ -55,7 +56,9 @@
 
 #define NOT_IMPLEMENTED 0x4B1D /* Feature or API not imeplemented */
 
-#define VAL_EXTRACT_BITS(data, start, end) ((data >> start) & ((1ul << (end - start + 1)) - 1))
+#define VAL_EXTRACT_BITS(data, start, end) \
+  (((uint64_t)(data) >> (start)) & \
+   (((end) - (start) + 1) >= 64 ? ~0ULL : ((1ULL << ((end) - (start) + 1)) - 1ULL)))
 
 #define EXECUTE_TEST_SENTINEL   "SINGLE_TEST_NONE"
 #define EXECUTE_MODULE_SENTINEL "SINGLE_MODULE_NONE"
@@ -125,6 +128,7 @@ uint32_t check_gpr_after_reset(void);
 uint32_t val_smmu_check_rmeda_el3(uint64_t smmu_base);
 uint32_t val_rlm_smmu_init(uint64_t num_smmu, uint64_t *smmu_base_arr);
 uint32_t val_smmu_rlm_map_el3(smmu_master_attributes_t *smmu_attr, pgt_descriptor_t *pgt_attr);
+uint32_t val_smmu_gpt_invalidate_el3(smmu_master_attributes_t *smmu_attr);
 void val_register_create_info_table(uint64_t *register_info_table);
 uint32_t val_dpt_add_entry(uint64_t translated_addr, uint32_t smmu_index);
 uint32_t val_dpt_invalidate_all(uint64_t smmu_index);
@@ -138,11 +142,28 @@ uint32_t val_cmo_to_poe(uint64_t PA);
 uint32_t val_rlm_configure_mecid(uint32_t mecid);
 uint32_t val_smmu_rlm_configure_mecid(smmu_master_attributes_t *smmu_attr, uint32_t mecid);
 void val_map_shared_mem_el3(uint64_t shared_addr);
+uint32_t val_cxl_root_port_ide_program_and_enable_el3(uint64_t bar0_base,
+                                                       uint8_t stream_id,
+                                                       uint8_t key_slot,
+                                                       const CXL_IDE_KEY_BUFFER *rx_key,
+                                                       const CXL_IDE_KEY_BUFFER *tx_key);
+uint32_t val_cxl_root_port_ide_disable_el3(uint64_t bar0_base,
+                                            uint8_t stream_id,
+                                            uint8_t key_slot);
+uint32_t val_cxl_root_port_ide_get_base_el3(uint64_t bar0_base,
+                                             uint64_t *ide_km_base);
 
 /* PCIe VAL APIs */
 void val_pcie_create_info_table(uint64_t *pcie_info_table);
 uint32_t val_pcie_create_device_bdf_table(void);
 void val_pcie_free_info_table(void);
+
+/* CXL VAL APIs */
+void val_cxl_create_info_table(uint64_t *cxl_info_table);
+void val_cxl_free_info_table(void);
+uint64_t val_cxl_get_info(CXL_INFO_e type, uint32_t index);
+uint32_t val_cxl_get_decoder(uint32_t index, uint32_t decoder_index, uint64_t *base,
+                             uint64_t *length);
 
 // Legacy system VAL APIs
 uint32_t val_legacy_execute_tests(uint32_t num_pe);
@@ -194,6 +215,15 @@ void val_timer_free_info_table(void);
 
 /* RME-DA APIs */
 uint32_t val_rme_da_execute_tests(uint32_t num_pe);
+
+/* CXL APIs */
+uint32_t val_rme_cxl_execute_tests(uint32_t num_pe);
+
+/* CDA APIs */
+uint32_t val_rme_cda_execute_tests(uint32_t num_pe);
+
+/* TDISP APIs */
+uint32_t val_rme_tdisp_execute_tests(uint32_t num_pe);
 
 /* IO-VIRT APIs */
 void val_iovirt_create_info_table(uint64_t *iovirt_info_table);
@@ -265,7 +295,9 @@ uint32_t val_rme_dpt_execute_tests(uint32_t num_pe);
 
 /* RME-MEC APIs */
 uint32_t val_rme_mec_execute_tests(uint32_t num_pe);
-
+uint32_t val_cxl_device_is_cxl(uint32_t bdf);
+uint32_t val_cxl_component_add(uint32_t bdf);
+void val_cxl_print_component_summary(void);
 /* System Configuration */
 /* System Configuration
  * UEFI: fetch from runtime config via pal_get_*.

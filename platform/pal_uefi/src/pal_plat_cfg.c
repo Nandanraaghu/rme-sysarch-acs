@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -598,23 +598,56 @@ CONST CHAR16* RmeCfgGetStr(CONST CHAR16* Key, CONST CHAR16* DefaultVal)
 
 /* ---------- existing table construction code (unchanged) ---------- */
 
-REGISTER_INFO_TABLE pal_rp_regs[PLATFORM_OVERRIDE_RP_REG_NUM_ENTRIES]
-    = {REGISTER_INFO_TABLE_ENTRIES(EXPAND_REGISTER_INFO)};
+#define UEFI_RP_REG_CAP 3u
+
+REGISTER_INFO_TABLE pal_rp_regs[UEFI_RP_REG_CAP];
+
+STATIC
+UINT32
+pal_register_get_cfg_num_entries(VOID)
+{
+  UINT32 rp_cnt;
+
+  rp_cnt = (UINT32)RmeCfgGetU64(L"RP_REG_CNT", 0u);
+  rp_cnt = MIN(rp_cnt, (UINT32)UEFI_RP_REG_CAP);
+  return rp_cnt;
+}
 
 VOID pal_register_create_info_table(REGISTER_INFO_TABLE* registerInfoTable)
 {
+  UINT32 rp_cnt;
+
   if (!registerInfoTable)
   {
     rme_print(ACS_PRINT_ERR, L"\nInput Register Table Pointer is NULL", 0);
     return;
   }
-  for (UINT32 index = 0; index < PLATFORM_OVERRIDE_RP_REG_NUM_ENTRIES; index++)
+
+  rp_cnt = pal_register_get_cfg_num_entries();
+  for (UINT32 index = 0; index < rp_cnt; index++)
+  {
+    CHAR16 key[64];
+    UINT64 def_type = pal_rp_regs[index].type;
+    UINT64 def_bdf = pal_rp_regs[index].bdf;
+    UINT64 def_addr = pal_rp_regs[index].address;
+    UINT64 def_prop = pal_rp_regs[index].property;
+
+    UnicodeSPrint(key, sizeof(key), L"RP_REG_%u_TYPE", index);
+    pal_rp_regs[index].type = (UINT32)RmeCfgGetU64(key, def_type);
+    UnicodeSPrint(key, sizeof(key), L"RP_REG_%u_BDF", index);
+    pal_rp_regs[index].bdf = (UINT32)RmeCfgGetU64(key, def_bdf);
+    UnicodeSPrint(key, sizeof(key), L"RP_REG_%u_ADDR", index);
+    pal_rp_regs[index].address = RmeCfgGetU64(key, def_addr);
+    UnicodeSPrint(key, sizeof(key), L"RP_REG_%u_PROPERTY", index);
+    pal_rp_regs[index].property = (UINT32)RmeCfgGetU64(key, def_prop);
+
     registerInfoTable[index] = pal_rp_regs[index];
+  }
 }
 
 UINT32 pal_register_get_num_entries(void)
 {
-  return PLATFORM_OVERRIDE_RP_REG_NUM_ENTRIES;
+  return pal_register_get_cfg_num_entries();
 }
 
 RT_REG_INFO_ENTRY rt_regs[RT_REG_CAP] = {RT_REGISTER_ENTRIES(EXPAND_RT_REG)};
@@ -790,60 +823,65 @@ UINT32 pal_is_pas_filter_mode_programmable(void)
                               IS_PAS_FILTER_MODE_PROGRAMMABLE_CT);
 }
 
+UINT32 pal_is_coherent_da_supported(void)
+{
+  return (UINT32)RmeCfgGetU64(L"IS_COHERENT_DA_SUPPORTED", IS_COHERENT_DA_SUPPORTED_CT);
+}
+
 /* --------- Simple getters for single-value PLATFORM_CONFIG keys --------- */
-uint64_t pal_get_root_smem_base(void)
+UINT64 pal_get_root_smem_base(void)
 {
   return RmeCfgGetU64(L"PLAT_ROOT_SMEM_BASE", PLAT_ROOT_SMEM_BASE_CT);
 }
-uint64_t pal_get_realm_smem_base(void)
+UINT64 pal_get_realm_smem_base(void)
 {
   return RmeCfgGetU64(L"PLAT_REALM_SMEM_BASE", PLAT_REALM_SMEM_BASE_CT);
 }
-uint64_t pal_get_mte_protected_region_base(void)
+UINT64 pal_get_mte_protected_region_base(void)
 {
   return RmeCfgGetU64(L"PLAT_MTE_PROTECTED_REGION_BASE", PLAT_MTE_PROTECTED_REGION_BASE_CT);
 }
-uint64_t pal_get_mte_protected_region_size(void)
+UINT64 pal_get_mte_protected_region_size(void)
 {
   return RmeCfgGetU64(L"PLAT_MTE_PROTECTED_REGION_SIZE", PLAT_MTE_PROTECTED_REGION_SIZE_CT);
 }
-uint64_t pal_get_msd_save_restore_mem(void)
+UINT64 pal_get_msd_save_restore_mem(void)
 {
   return RmeCfgGetU64(L"PLAT_MSD_SAVE_RESTORE_MEM", PLAT_MSD_SAVE_RESTORE_MEM_CT);
 }
-uint64_t pal_get_rme_rnvs_mailbox_mem(void)
+UINT64 pal_get_rme_rnvs_mailbox_mem(void)
 {
   return RmeCfgGetU64(L"PLAT_RME_RNVS_MAILBOX_MEM", PLAT_RME_RNVS_MAILBOX_MEM_CT);
 }
-uint64_t pal_get_rt_wdog_ctrl(void)
+UINT64 pal_get_rt_wdog_ctrl(void)
 {
   return RmeCfgGetU64(L"PLAT_RT_WDOG_CTRL", PLAT_RT_WDOG_CTRL_CT);
 }
-uint64_t pal_get_rt_wdog_int_id(void)
+UINT64 pal_get_rt_wdog_int_id(void)
 {
   return RmeCfgGetU64(L"PLAT_RT_WDOG_INT_ID", PLAT_RT_WDOG_INT_ID_CT);
 }
-uint64_t pal_get_rme_acs_nvm_mem(void)
+UINT64 pal_get_rme_acs_nvm_mem(void)
 {
   return RmeCfgGetU64(L"PLAT_RME_ACS_NVM_MEM", PLAT_RME_ACS_NVM_MEM_CT);
 }
-uint64_t pal_get_free_mem_start(void)
+UINT64 pal_get_free_mem_start(void)
 {
   return RmeCfgGetU64(L"PLAT_FREE_MEM_START", PLAT_FREE_MEM_START_CT);
 }
-uint64_t pal_get_free_va_test(void)
+UINT64 pal_get_free_va_test(void)
 {
   return RmeCfgGetU64(L"PLAT_FREE_VA_TEST", PLAT_FREE_VA_TEST_CT);
 }
-uint64_t pal_get_free_pa_test(void)
+UINT64 pal_get_free_pa_test(void)
 {
   return RmeCfgGetU64(L"PLAT_FREE_PA_TEST", PLAT_FREE_PA_TEST_CT);
 }
-uint64_t pal_get_free_mem_smmu(void)
+UINT64 pal_get_free_mem_smmu(void)
 {
   return RmeCfgGetU64(L"PLAT_FREE_MEM_SMMU", PLAT_FREE_MEM_SMMU_CT);
 }
-uint64_t pal_get_memory_pool_size(void)
+UINT64 pal_get_memory_pool_size(void)
 {
   return PLAT_MEMORY_POOL_SIZE;
 }

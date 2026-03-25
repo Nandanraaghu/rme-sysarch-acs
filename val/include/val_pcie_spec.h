@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022, 2024-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022, 2024-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +25,7 @@
 #define TYPE01_CLSR   0xc
 #define TYPE01_BAR    0x10
 #define TYPE01_CPR    0x34
+#define TYPE01_EXP_ROM 0x38
 #define TYPE01_ILR    0x3c
 
 /* TYPE 0/1 Cmn Cfg reg shifts and masks */
@@ -50,6 +51,7 @@
 #define DP_CNTRL_CC  0x3
 
 /* Command register shifts */
+#define CR_IO_SE_SHIFT  0
 #define CR_MSE_SHIFT   1
 #define CR_BME_SHIFT   2
 #define CR_SCE_SHIFT   3
@@ -134,10 +136,13 @@
 /* Type 1 Cfg reg offsets */
 #define TYPE1_PBN       0x18
 #define TYPE1_SEC_STA   0x1C
+#define TYPE1_IO_BASE_LIMIT 0x1C
 #define TYPE1_NP_MEM    0x20
 #define TYPE1_P_MEM     0x24
 #define TYPE1_P_MEM_BU  0x28    /* Prefetchable Base Upper Offset */
 #define TYPE1_P_MEM_LU  0x2C    /* Prefetchable Limit Upper Offset */
+#define TYPE1_IO_BASE_UPPER  0x30
+#define TYPE1_IO_LIMIT_UPPER 0x32
 
 /* Type 1 Bridge Control Register */
 #define BRIDGE_CTRL_SBR_SET     0x400000
@@ -198,6 +203,10 @@
 #define ECID_DCAP3     0x0027
 #define ECID_IDE       0x0030
 
+/* MSI/MSI-X capability struct offsets */
+#define MSI_CTRL_OFFSET  0x2
+#define MSIX_CTRL_OFFSET 0x2
+
 /* PCI Express capability struct offsets */
 #define CIDR_OFFSET    0x0
 #define PCIECR_OFFSET  0x2
@@ -208,6 +217,7 @@
 #define DCTLR_OFFSET   0x8
 #define LCAPR_OFFSET   0xC
 #define LCTRLR_OFFSET  0x10
+#define PCIE_ROOT_CTRL_OFFSET 0x1C
 #define DCAP2R_OFFSET  0x24
 #define DCTL2R_OFFSET  0x28
 #define DCTL2R_MASK    0xFFFF
@@ -288,6 +298,8 @@
 /* Link Capabilities register shifts and masks */
 #define LCAPR_DLLLARC_SHIFT 20
 #define LCAPR_DLLLARC_MASK  0x100000
+#define LCAPR_PN_SHIFT      24
+#define LCAPR_PN_MASK       0xFF
 
 /* Link Status register shifts and masks */
 #define LSTAT_DLLLA_SHIFT   29
@@ -406,6 +418,11 @@
 #define NUM_ADDR_ASSO_REG_MASK 0xF
 #define NUM_ADDR_ASSO_REG_SHIFT 0
 
+/* PCIe DVSEC common register offsets */
+#define PCIE_DVSEC_HDR1_OFFSET 0x4u
+#define PCIE_DVSEC_HDR2_OFFSET 0x8u
+#define DVSEC_ID_MASK 0xFFFFu
+
 /* RME DA DVSEC registers */
 #define RMEDA_ECH 0x0
 #define RMEDA_HEAD1 0x4
@@ -423,9 +440,18 @@
 #define RMEDA_HEAD1_DVSEC_REV 0x0
 #define RMEDA_HEAD1_DVSEC_LEN 0x14
 
-/* RME DA DVSEC Header 2 rregister */
+/* Arm RME vendor */
+#define ARM_RME_VENDOR_ID 0x13B5u
+
+/* RME DA DVSEC Header 2 register */
 #define RMEDA_HEAD2_DVSEC_ID 0xFF01
 #define RMEDA_HEAD2_DVSEC_ID_MASK 0xFFFF
+
+/* RME CDA DVSEC Header 2 register */
+#define RMECDA_HEAD2_DVSEC_ID 0xFF03
+
+/* CHI-C2C DVSEC Header 2 register */
+#define CHIC2C_HEAD2_DVSEC_ID 0xFF05u
 
 /* RME DA DVSEC Control 1 register */
 #define RMEDA_CTL1_TDISP_EN 0x0

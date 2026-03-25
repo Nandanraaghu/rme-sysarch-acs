@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2024-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2024-2025, 2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -131,6 +131,8 @@ payload(void)
   uint32_t test_skip;
   uint64_t bar_base;
   uint32_t test_fails;
+  uint32_t req_locked = 0;
+  uint32_t tgt_locked = 0;
 
   test_skip = 1;
   test_fails = 0;
@@ -180,20 +182,26 @@ payload(void)
           goto test_clean;
       }
 
+      req_locked = 1;
+
       if (val_device_lock(tgt_e_bdf))
       {
           val_print(ACS_PRINT_ERR, " Failed to lock the device: 0x%lx", tgt_e_bdf);
           goto test_clean;
       }
 
+      tgt_locked = 1;
+
       /* Check if P2P transaction causes any deadlock */
       status = check_p2p_transaction(instance, bar_base);
       if (status)
       {
           val_print(ACS_PRINT_DEBUG, " Putting the devices into unlocked state", 0);
-          val_device_unlock(req_e_bdf);
+          if (req_locked)
+              val_device_unlock(req_e_bdf);
           val_pcie_disable_tdisp(req_rp_bdf);
-          val_device_unlock(tgt_e_bdf);
+          if (tgt_locked)
+              val_device_unlock(tgt_e_bdf);
           val_pcie_disable_tdisp(tgt_rp_bdf);
           val_set_status(index, "FAIL", 1);
           return;
@@ -201,8 +209,10 @@ payload(void)
 
 test_clean:
       val_print(ACS_PRINT_DEBUG, " Putting the devices back into unlocked state", 0);
-      val_device_unlock(req_e_bdf);
-      val_device_unlock(tgt_e_bdf);
+      if (req_locked)
+          val_device_unlock(req_e_bdf);
+      if (tgt_locked)
+          val_device_unlock(tgt_e_bdf);
       val_pcie_disable_tdisp(req_rp_bdf);
       val_pcie_disable_tdisp(tgt_rp_bdf);
       /* Clear Error Status Bits */

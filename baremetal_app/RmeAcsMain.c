@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -154,6 +154,18 @@ createPcieVirtInfoTable(
 }
 
 void
+createCxlInfoTable(
+)
+{
+  uint64_t   *CxlInfoTable;
+
+  CxlInfoTable = val_aligned_alloc(SIZE_4K, sizeof(CXL_INFO_TABLE)
+                 + (PLATFORM_OVERRIDE_CXL_HOST_BRIDGE_COUNT * sizeof(CXL_INFO_BLOCK)));
+
+  val_cxl_create_info_table(CxlInfoTable);
+}
+
+void
 createPeripheralInfoTable(
 )
 {
@@ -172,6 +184,7 @@ freeRmeAcsMem()
   val_gic_free_info_table();
   val_timer_free_info_table();
   val_pcie_free_info_table();
+  val_cxl_free_info_table();
   val_iovirt_free_info_table();
   val_peripheral_free_info_table();
   val_free_shared_mem();
@@ -193,7 +206,7 @@ ShellAppMainrme(
   uint32_t             Status;
   void                 *branch_label;
 
-  g_print_level = PLATFORM_OVERRIDE_PRINT_LEVEL;
+  g_print_level = ACS_PRINT_LEVEL;
   if (g_print_level < ACS_PRINT_INFO)
   {
       val_print(ACS_PRINT_ERR, "Print Level %d is not supported.", g_print_level);
@@ -228,7 +241,7 @@ ShellAppMainrme(
   g_rme_tests_fail  = 0;
 
   val_print(ACS_PRINT_ALWAYS, "\n\n RME Architecture Compliance Suite \n", 0);
-  val_print(ACS_PRINT_ALWAYS, " Version: Issue B.a ACS EAC   \n", 0);
+  val_print(ACS_PRINT_ALWAYS, " Version: Issue C.a ACS v0.5 ALPHA   \n", 0);
 
   val_print(ACS_PRINT_ALWAYS, " (Print level is %2d)\n\n", g_print_level);
   /* Initialize runtime-dependent globals (free mem, shared data, NVM). */
@@ -255,6 +268,7 @@ ShellAppMainrme(
     return Status;
  createTimerInfoTable();
  createPeripheralInfoTable();
+ createCxlInfoTable();
  createPcieVirtInfoTable();
 
  val_allocate_shared_mem();
@@ -294,12 +308,20 @@ ShellAppMainrme(
 
   Status |= val_rme_mec_execute_tests(val_pe_get_num());
 
+  Status |= val_rme_cxl_execute_tests(val_pe_get_num());
+
+  Status |= val_rme_cda_execute_tests(val_pe_get_num());
+
+  Status |= val_rme_tdisp_execute_tests(val_pe_get_num());
+
 print_test_status:
-  val_print(ACS_PRINT_ALWAYS, "\n ------------------------------------------------------- \n", 0);
-  val_print(ACS_PRINT_ALWAYS, " Total Tests run  = %4d;", g_rme_tests_total);
-  val_print(ACS_PRINT_ALWAYS, " Tests Passed  = %4d", g_rme_tests_pass);
-  val_print(ACS_PRINT_ALWAYS, " Tests Failed = %4d\n", g_rme_tests_fail);
-  val_print(ACS_PRINT_ALWAYS, " --------------------------------------------------------- \n", 0);
+  val_print(ACS_PRINT_ALWAYS,
+                       "\n -------------------------------------------------------------- \n", 0);
+  val_print(ACS_PRINT_ALWAYS, " Total Tests run  = %2d ;", g_rme_tests_total);
+  val_print(ACS_PRINT_ALWAYS, " Tests Passed  = %2d ;", g_rme_tests_pass);
+  val_print(ACS_PRINT_ALWAYS, " Tests Failed = %2d\n", g_rme_tests_fail);
+  val_print(ACS_PRINT_ALWAYS,
+                         " -------------------------------------------------------------- \n", 0);
 
   freeRmeAcsMem();
 

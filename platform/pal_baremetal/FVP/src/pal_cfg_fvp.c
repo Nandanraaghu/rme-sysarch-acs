@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@
 /* Populate the skip array with the module or test names to be excluded from the run */
 char8_t *g_skip_array[] = {"da_autonomous_rootport_request_ns_pas"};
 char8_t *g_test_array[]    = {};
-char8_t *g_module_array[]  = {"da","dpt","mec"};
+char8_t *g_module_array[]  = {"da","dpt","mec","cxl","cda","tdisp"};
 
 uint32_t  g_num_skip       = sizeof(g_skip_array)/sizeof(g_skip_array[0]);
 uint32_t  g_num_tests      = sizeof(g_test_array)/sizeof(g_test_array[0]);
@@ -252,6 +252,24 @@ PCIE_ROOT_INFO_TABLE platform_root_pcie_cfg = {
     .block[0].ep_npbar32_value[0] = PLATFORM_OVERRIDE_PCIE_ECAM0_EP_NPBAR32,
     .block[0].ep_pbar32_value[0]  = PLATFORM_OVERRIDE_PCIE_ECAM0_EP_PBAR32,
     .block[0].rp_bar32_value[0]   = PLATFORM_OVERRIDE_PCIE_ECAM0_RP_BAR32,
+};
+
+PLATFORM_OVERRIDE_CXL_INFO_TABLE platform_cxl_cfg = {
+    .num_entries = PLATFORM_OVERRIDE_CXL_HOST_BRIDGE_COUNT,
+    #if PLATFORM_OVERRIDE_CXL_HOST_BRIDGE_COUNT
+    .device[0].uid                = PLATFORM_OVERRIDE_CXL_HB0_UID,
+    .device[0].component_reg_base = PLATFORM_OVERRIDE_CXL_HB0_COMPONENT_BASE,
+    .device[0].component_reg_length = PLATFORM_OVERRIDE_CXL_HB0_COMPONENT_LENGTH,
+    .device[0].cfmws_count        = PLATFORM_OVERRIDE_CXL_HB0_CFMWS_COUNT,
+    .device[0].cfmws_base[0]      = PLATFORM_OVERRIDE_CXL_HB0_CFMWS0_BASE,
+    .device[0].cfmws_base[1]      = PLATFORM_OVERRIDE_CXL_HB0_CFMWS1_BASE,
+    .device[0].cfmws_length[0]    = PLATFORM_OVERRIDE_CXL_HB0_CFMWS0_LENGTH,
+    .device[0].cfmws_length[1]    = PLATFORM_OVERRIDE_CXL_HB0_CFMWS1_LENGTH,
+    .device[0].rp_count           = PLATFORM_OVERRIDE_CXL_HB0_RP_COUNT,
+    .device[0].rp_bdf[0]          = PLATFORM_OVERRIDE_CXL_HB0_RP0_BDF,
+    .device[0].rp_bdf[1]          = PLATFORM_OVERRIDE_CXL_HB0_RP1_BDF,
+    .device[0].rp_bdf[2]          = PLATFORM_OVERRIDE_CXL_HB0_RP2_BDF
+    #endif
 };
 
 PLATFORM_OVERRIDE_IOVIRT_INFO_TABLE platform_iovirt_cfg = {

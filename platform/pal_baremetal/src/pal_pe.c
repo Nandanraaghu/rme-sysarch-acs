@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2023, 2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2023, 2025-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,7 @@
 **/
 
 #include "include/pal_common_support.h"
+#include "pal_image_def.h"
 #include "include/pal_pcie_enum.h"
 #include "FVP/include/pal_override_struct.h"
 
@@ -123,6 +124,10 @@ PalAllocateSecondaryStack(uint64_t mpidr)
 {
 
   uint32_t NumPe, Aff0, Aff1, Aff2, Aff3;
+  uint64_t size;
+  uint64_t base;
+  uint64_t aligned_base;
+  uint64_t stack_base;
 
   Aff0 = ((mpidr & 0x00000000ff) >>  0);
   Aff1 = ((mpidr & 0x000000ff00) >>  8);
@@ -133,10 +138,29 @@ PalAllocateSecondaryStack(uint64_t mpidr)
 
   if (gSecondaryPeStack == NULL)
   {
-      gSecondaryPeStack = pal_mem_alloc(NumPe * SIZE_STACK_SECONDARY_PE);
-      if (gSecondaryPeStack == NULL){
-          print(ACS_PRINT_ERR, "FATAL - Allocation for Secondary stack failed ", 0);
+      size = (uint64_t)NumPe * (uint64_t)SIZE_STACK_SECONDARY_PE;
+#ifndef TARGET_BM_BOOT
+      gSecondaryPeStack = pal_mem_alloc(size);
+      if (gSecondaryPeStack == NULL) {
+          print(ACS_PRINT_ERR,
+                "FATAL - Allocation for Secondary stack failed ", 0);
       }
+#else
+      /* Use shared region for secondary stacks so all PEs can see them early. */
+      base = (uint64_t)PLATFORM_SHARED_REGION_BASE;
+      aligned_base = (base + 63u) & ~63u;
+      stack_base = ((uint64_t)PLATFORM_SHARED_REGION_BASE +
+                    (uint64_t)PLATFORM_SHARED_REGION_SIZE) - size;
+      stack_base &= ~63u;
+
+      /* Put stacks at the top to avoid clashing with shared test data at base. */
+      if (stack_base < (aligned_base + size)) {
+          print(ACS_PRINT_ERR,
+                "FATAL - Shared region too small for stacks ", 0);
+      } else {
+          gSecondaryPeStack = (uint8_t *)stack_base;
+      }
+#endif
       pal_pe_data_cache_ops_by_va((uint64_t)&gSecondaryPeStack, CLEAN_AND_INVALIDATE);
   }
 }

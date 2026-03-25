@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +19,7 @@
 #define __RME_ACS_PCIE_H__
 
 #include "val_pcie_spec.h"
+#include "val_cxl_spec.h"
 
 #define PCIE_EXTRACT_BDF_SEG(bdf)  ((bdf >> 24) & 0xFF)
 #define PCIE_EXTRACT_BDF_BUS(bdf)  ((bdf >> 16) & 0xFF)
@@ -81,6 +82,12 @@ typedef enum {
   PCIE_CAP = 1,
   PCIE_ECAP = 2
 } BITFIELD_REGISTER_TYPE;
+
+typedef enum {
+  VAL_DVSEC_SELECT_AUTO = 0,
+  VAL_DVSEC_SELECT_RMEDA,
+  VAL_DVSEC_SELECT_RMECDA
+} VAL_DVSEC_SELECT;
 
 typedef enum {
   HW_INIT = 0,
@@ -154,6 +161,12 @@ typedef struct {
   pcie_device_attr device[];         ///< in the format of Segment/Bus/Dev/Func
 } pcie_device_bdf_table;
 
+typedef struct pcie_endpoint_cfg {
+  uint32_t command;
+  uint32_t bar[6];
+  uint32_t valid;
+} PCIE_ENDPOINT_CFG;
+
 void     val_pcie_write_cfg(uint32_t bdf, uint32_t offset, uint32_t data);
 void     val_pcie_io_write_cfg(uint32_t bdf, uint32_t offset, uint32_t data);
 uint32_t val_pcie_read_cfg(uint32_t bdf, uint32_t offset, uint32_t *data);
@@ -183,6 +196,10 @@ uint32_t val_pcie_is_onchip_peripheral(uint32_t bdf);
 uint32_t val_pcie_device_port_type(uint32_t bdf);
 uint32_t val_pcie_find_capability(uint32_t bdf, uint32_t cid_type,
                                            uint32_t cid, uint32_t *cid_offset);
+uint32_t val_pcie_find_vendor_dvsec(uint32_t bdf,
+                                    uint16_t vendor_id,
+                                    uint16_t dvsec_id,
+                                    uint32_t *cid_offset);
 void val_pcie_disable_bme(uint32_t bdf);
 void val_pcie_enable_bme(uint32_t bdf);
 void val_pcie_disable_msa(uint32_t bdf);
@@ -192,12 +209,17 @@ void val_pcie_clear_urd(uint32_t bdf);
 uint32_t val_pcie_is_urd(uint32_t bdf);
 void val_pcie_enable_eru(uint32_t bdf);
 void val_pcie_disable_eru(uint32_t bdf);
-uint32_t val_pcie_bitfield_check(uint32_t bdf, uint64_t *bf_entry);
-uint32_t val_pcie_register_bitfields_check(uint64_t *bf_info_table, uint32_t table_size);
+uint32_t val_pcie_bitfield_check(uint32_t bdf,
+                                 uint64_t *bf_entry,
+                                 VAL_DVSEC_SELECT dvsec_select);
+uint32_t val_pcie_register_bitfields_check(uint64_t *bf_info_table,
+                                           uint32_t table_size,
+                                           VAL_DVSEC_SELECT dvsec_select);
 uint32_t val_pcie_function_header_type(uint32_t bdf);
 void val_pcie_get_mmio_bar(uint32_t bdf, void *base);
 uint32_t val_pcie_get_downstream_function(uint32_t bdf, uint32_t *dsf_bdf);
 uint32_t val_pcie_get_rootport(uint32_t bdf, uint32_t *rp_bdf);
+uint32_t val_pcie_get_link_exposure(uint32_t bdf, uint32_t *exposed);
 uint8_t val_pcie_parent_is_rootport(uint32_t dsf_bdf, uint32_t *rp_bdf);
 uint8_t val_pcie_is_host_bridge(uint32_t bdf);
 void val_pcie_clear_device_status_error(uint32_t bdf);
@@ -206,6 +228,8 @@ uint32_t val_pcie_is_sig_target_abort(uint32_t bdf);
 void val_pcie_clear_sig_target_abort(uint32_t bdf);
 uint32_t val_pcie_mem_get_offset(uint32_t type);
 uint32_t val_pcie_get_bar_index(uint32_t bdf, uint64_t bar_address, uint32_t *bar_index);
+void val_pcie_enable_io_space(uint32_t bdf);
+void val_pcie_disable_io_space(uint32_t bdf);
 
 typedef enum {
   PCIE_INFO_NUM_ECAM = 1,
@@ -265,6 +289,28 @@ uint32_t
 val_pcie_write_detect_bitfield_check(uint32_t bdf, uint64_t *bitfield_entry, uint32_t str_count);
 
 uint32_t
+val_pcie_find_vendor_dvsec(uint32_t bdf, uint16_t vendor_id, uint16_t dvsec_id,
+                                                             uint32_t *offset_out);
+
+uint32_t
 val_pcie_find_da_capability(uint32_t bdf, uint32_t *cid_offset);
+
+uint32_t
+val_pcie_find_cda_capability(uint32_t bdf, uint32_t *cid_offset);
+
+uint32_t
+val_pcie_read_rmecda_ctl1(uint32_t bdf, uint32_t *value);
+
+uint32_t
+val_pcie_get_root_port_id(uint32_t bdf, uint32_t *port_id);
+
+uint32_t
+val_pcie_save_endpoint_cfg(uint32_t endpoint_bdf, PCIE_ENDPOINT_CFG *cfg);
+
+void
+val_pcie_restore_endpoint_cfg(uint32_t endpoint_bdf, const PCIE_ENDPOINT_CFG *cfg);
+
+uint32_t
+val_pcie_reset_endpoint(uint32_t rp_bdf, uint32_t endpoint_bdf);
 
 #endif

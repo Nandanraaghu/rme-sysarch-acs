@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2022-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2022-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,10 +17,12 @@
 
 #include "include/val.h"
 #include "include/val_exerciser.h"
+#include "include/val_cxl.h"
 #include "include/val_pcie.h"
 #include "include/val_smmu.h"
 
 EXERCISER_INFO_TABLE g_exerciser_info_table;
+CXL_EXERCISER_INFO_TABLE g_cxl_exerciser_info_table;
 
 extern uint32_t pcie_bdf_table_list_flag;
 
@@ -35,7 +37,9 @@ void val_exerciser_create_info_table(void)
   uint32_t Bdf;
   uint32_t reg_value;
   uint32_t num_bdf;
+  uint32_t cxl_idx;
   pcie_device_bdf_table *bdf_table;
+  CXL_COMPONENT_TABLE *cxl_table;
 
   bdf_table = val_pcie_bdf_table_ptr();
   /* if no bdf table ptr return error */
@@ -45,6 +49,8 @@ void val_exerciser_create_info_table(void)
       return;
   }
 
+  g_exerciser_info_table.num_exerciser = 0;
+  g_cxl_exerciser_info_table.num_exerciser = 0;
   num_bdf = bdf_table->num_entries;
   while (num_bdf-- != 0)
   {
@@ -66,8 +72,44 @@ void val_exerciser_create_info_table(void)
           val_print(ACS_PRINT_DEBUG, " exerciser Bdf %x", Bdf);
       }
   }
+
+  /* Populate the CXL exerciser table based on discovered CXL endpoints. */
+  cxl_table = val_cxl_component_table_ptr();
+  if ((cxl_table != NULL) && (cxl_table->num_entries != 0u))
+  {
+      for (cxl_idx = 0u; cxl_idx < cxl_table->num_entries; ++cxl_idx)
+      {
+          uint32_t cxl_bdf = cxl_table->component[cxl_idx].bdf;
+
+          if (cxl_table->component[cxl_idx].role != CXL_COMPONENT_ROLE_ENDPOINT)
+              continue;
+
+          if (!pal_is_bdf_exerciser(cxl_bdf))
+              continue;
+
+          if (g_cxl_exerciser_info_table.num_exerciser >= MAX_EXERCISER_CARDS)
+              break;
+
+          g_cxl_exerciser_info_table
+              .e_info[g_cxl_exerciser_info_table.num_exerciser].bdf = cxl_bdf;
+          g_cxl_exerciser_info_table
+              .e_info[g_cxl_exerciser_info_table.num_exerciser++].initialized = 0;
+          val_print(ACS_PRINT_DEBUG, " cxl exerciser Bdf %x", cxl_bdf);
+      }
+  }
+
   val_print(ACS_PRINT_ALWAYS, "\n PCIE_INFO: Number of exerciser cards : %4d",
                                                              g_exerciser_info_table.num_exerciser);
+  val_print(ACS_PRINT_ALWAYS, "\n CXL_INFO: Number of CXL exerciser cards : %4d",
+                                                         g_cxl_exerciser_info_table.num_exerciser);
+  if (g_cxl_exerciser_info_table.num_exerciser != 0u)
+  {
+      for (cxl_idx = 0u; cxl_idx < g_cxl_exerciser_info_table.num_exerciser; ++cxl_idx)
+      {
+          val_print(ACS_PRINT_INFO, " CXL exerciser BDF 0x%x",
+                    g_cxl_exerciser_info_table.e_info[cxl_idx].bdf);
+      }
+  }
   return;
 }
 
@@ -146,6 +188,16 @@ uint32_t val_exerciser_get_info(EXERCISER_INFO_TYPE type)
     }
 }
 
+uint32_t val_cxl_exerciser_get_info(CXL_EXERCISER_INFO_TYPE type)
+{
+    switch (type) {
+    case CXL_EXERCISER_NUM_CARDS:
+        return g_cxl_exerciser_info_table.num_exerciser;
+    default:
+        return 0;
+    }
+}
+
 /**
   @brief   This API writes the configuration parameters of the PCIe stimulus generation hardware
   @param   type         - Parameter type that needs to be set in the stimulus hadrware
@@ -161,9 +213,40 @@ uint32_t val_exerciser_set_param(EXERCISER_PARAM_TYPE type, uint64_t value1, uin
                                    g_exerciser_info_table.e_info[instance].bdf);
 }
 
+uint32_t
+val_exerciser_set_param_by_bdf(EXERCISER_PARAM_TYPE type, uint64_t value1, uint64_t value2,
+                               uint32_t bdf)
+{
+    return pal_exerciser_set_param(type, value1, value2, bdf);
+}
+
 uint32_t val_exerciser_get_bdf(uint32_t instance)
 {
     return g_exerciser_info_table.e_info[instance].bdf;
+}
+
+uint32_t val_cxl_exerciser_get_bdf(uint32_t instance)
+{
+    return g_cxl_exerciser_info_table.e_info[instance].bdf;
+}
+
+uint32_t val_cxl_exerciser_get_instance_by_bdf(uint32_t bdf, uint32_t *instance)
+{
+    uint32_t idx;
+
+    if (instance == NULL)
+        return 1;
+
+    for (idx = 0u; idx < g_cxl_exerciser_info_table.num_exerciser; ++idx)
+    {
+        if (g_cxl_exerciser_info_table.e_info[idx].bdf == bdf)
+        {
+            *instance = idx;
+            return 0;
+        }
+    }
+
+    return 1;
 }
 
 /**
@@ -180,6 +263,13 @@ uint32_t val_exerciser_get_param(EXERCISER_PARAM_TYPE type, uint64_t *value1, ui
     return pal_exerciser_get_param(type, value1, value2,
                                    g_exerciser_info_table.e_info[instance].bdf);
 
+}
+
+uint32_t
+val_exerciser_get_param_by_bdf(EXERCISER_PARAM_TYPE type, uint64_t *value1, uint64_t *value2,
+                               uint32_t bdf)
+{
+    return pal_exerciser_get_param(type, value1, value2, bdf);
 }
 
 /**
@@ -241,6 +331,17 @@ uint32_t val_exerciser_init(uint32_t instance)
           val_print(ACS_PRINT_INFO, " Already initialized %d", instance);
   return 0;
 }
+
+uint32_t
+val_exerciser_init_by_bdf(uint32_t bdf)
+{
+    EXERCISER_STATE state;
+
+    if (pal_exerciser_get_state(&state, bdf) || (state != EXERCISER_ON))
+        return 1;
+
+    return 0;
+}
 /**
   @brief   This API performs the input operation using the PCIe stimulus generation hardware
   @param   ops          - Operation that needs to be performed with the stimulus hadrware
@@ -251,6 +352,12 @@ uint32_t val_exerciser_init(uint32_t instance)
 uint32_t val_exerciser_ops(EXERCISER_OPS ops, uint64_t param, uint32_t instance)
 {
     return pal_exerciser_ops(ops, param, g_exerciser_info_table.e_info[instance].bdf);
+}
+
+uint32_t
+val_exerciser_ops_by_bdf(EXERCISER_OPS ops, uint64_t param, uint32_t bdf)
+{
+    return pal_exerciser_ops(ops, param, bdf);
 }
 
 /**

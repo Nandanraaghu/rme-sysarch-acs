@@ -1,6 +1,6 @@
 /* Unified SMMU header (v3 content folded) */
 /** @file
- * Copyright (c) 2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -260,6 +260,8 @@
 #define CMD_SID_MASK 		 0xFFFFFFFF
 
 #define SMMU_CMDQ_POLL_TIMEOUT 0x100000
+#define SMMU_REG_POLL_TIMEOUT  0x1000000
+#define SMMU_ROOT_TLBI_CTRL_BUSY_MASK 0x1u
 
 #define CDTAB_SPLIT			10
 #define CDTAB_L2_ENTRY_COUNT	(1 << CDTAB_SPLIT)
@@ -413,6 +415,7 @@ void val_el3_smmu_access_enable(uint64_t smmu_base);
 void val_el3_smmu_root_config_service(uint64_t arg0, uint64_t arg1, uint64_t arg2);
 void val_el3_smmu_init(uint32_t num_smmu, uint64_t smmu_base_arr[]);
 uint32_t val_el3_smmu_rlm_map(smmu_master_attributes_t master_attr, pgt_descriptor_t pgt_desc);
+uint32_t val_el3_smmu_gpt_invalidate(smmu_master_attributes_t master_attr);
 uint32_t val_el3_dpt_add_entry(uint64_t translated_addr, uint64_t smmu_info);
 void val_el3_dpt_invalidate_all(uint64_t smmu_index);
 uint32_t val_el3_smmu_set_rlm_ste_mecid(smmu_master_attributes_t master_attr, uint32_t mecid);

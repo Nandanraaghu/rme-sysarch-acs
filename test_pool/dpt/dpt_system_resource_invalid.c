@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -287,6 +287,14 @@ payload(void)
                                      PCIE_EXTRACT_BDF_SEG(bdf),
                                      &device_id, &master.streamid,
                                      &its_id);
+      /* Invalidate SMMU GPT cache entries after GPT updates for this stream. */
+      if (val_smmu_gpt_invalidate_el3(&master))
+      {
+          val_print(ACS_PRINT_ERR, " Failed to invalidate SMMU GPT cache for stream 0x%lx",
+                    master.streamid);
+          test_fail++;
+          goto free_mem;
+      }
 
       /* Get the VTTBR_EL2 and VTCR_EL2, populate them if they aren't already */
       if (val_pe_get_vtcr(&pgt_desc.vtcr))
@@ -484,4 +492,3 @@ dpt_system_resource_invalid_entry(void)
 
   return  status;
 }
-

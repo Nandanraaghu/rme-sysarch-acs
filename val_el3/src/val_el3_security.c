@@ -1,5 +1,5 @@
 /** @file
-  * Copyright (c) 2025, Arm Limited or its affiliates. All rights reserved.
+  * Copyright (c) 2025, 2026, Arm Limited or its affiliates. All rights reserved.
   * SPDX-License-Identifier : Apache-2.0
 
   * Licensed under the Apache License, Version 2.0 (the "License");
@@ -70,4 +70,33 @@ void val_el3_pas_filter_active_mode(int enable)
 {
   //Change the mode to Active from In-active
   pal_el3_pas_filter_active_mode(enable);
+}
+
+uint32_t
+val_el3_ide_km_program_and_enable(uint64_t bar0_base,
+                                  uint8_t stream_id,
+                                  uint8_t key_slot,
+                                  const CXL_IDE_KEY_BUFFER *rx_key,
+                                  const CXL_IDE_KEY_BUFFER *tx_key)
+{
+  return pal_cxl_root_port_ide_program_and_enable(bar0_base,
+                                                   stream_id,
+                                                   key_slot,
+                                                   rx_key,
+                                                   tx_key);
+}
+
+uint32_t
+val_el3_ide_km_disable(uint64_t bar0_base,
+                       uint8_t stream_id,
+                       uint8_t key_slot)
+{
+  return pal_cxl_root_port_ide_disable(bar0_base, stream_id, key_slot);
+}
+
+uint32_t
+val_el3_ide_km_get_base(uint64_t bar0_base,
+                        uint64_t *ide_km_base)
+{
+  return pal_cxl_root_port_ide_get_km_base(bar0_base, ide_km_base);
 }

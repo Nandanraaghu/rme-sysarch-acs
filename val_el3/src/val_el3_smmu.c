@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2025-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -249,6 +249,61 @@ static void smmu_tlbi_cfgi(smmu_dev_t *smmu)
     smmu_cmdq_issue_cmd(smmu, CMDQ_OP_CMD_SYNC);
 
     smmu_cmdq_poll_until_consumed(smmu);
+}
+
+uint32_t val_el3_smmu_gpt_invalidate(smmu_master_attributes_t master_attr)
+{
+    smmu_dev_t *smmu;
+    uint32_t idr0;
+    uint32_t ctrl = SMMU_ROOT_TLBI_CTRL_BUSY_MASK;
+    uint32_t timeout;
+    uint64_t tlbi;
+
+    if (g_smmu == NULL)
+        return 1;
+
+    if (master_attr.smmu_index >= g_num_smmus)
+        return 1;
+
+    smmu = &g_smmu[master_attr.smmu_index];
+    if (smmu->base == 0)
+        return 1;
+
+    g_sid = master_attr.streamid;
+    val_el3_mem_barrier();
+    idr0 = val_el3_mmio_read(smmu->base + SMMU_ROOT_IDRO);
+    if ((idr0 & SMMU_ROOT_IDR0_RGPTM_MASK) == 0u)
+        return 1;
+
+    timeout = SMMU_REG_POLL_TIMEOUT;
+    while (timeout--) {
+        ctrl = val_el3_mmio_read(smmu->base + SMMU_ROOT_TLBI_CTRL);
+        if ((ctrl & SMMU_ROOT_TLBI_CTRL_BUSY_MASK) == 0u)
+            break;
+    }
+    if ((ctrl & SMMU_ROOT_TLBI_CTRL_BUSY_MASK) != 0u) {
+        ERROR("\n      timed out waiting for ROOT_TLBI_CTRL to become idle     ");
+        return 1;
+    }
+
+    tlbi = 0u;
+    tlbi |= 1ULL << 0; /* ALL = 1 */
+    val_el3_mmio_write64(smmu->base + SMMU_ROOT_TLBI, tlbi);
+
+    val_el3_mmio_write(smmu->base + SMMU_ROOT_TLBI_CTRL, 1u);
+
+    timeout = SMMU_REG_POLL_TIMEOUT;
+    while (timeout--) {
+        ctrl = val_el3_mmio_read(smmu->base + SMMU_ROOT_TLBI_CTRL);
+        if ((ctrl & SMMU_ROOT_TLBI_CTRL_BUSY_MASK) == 0u)
+            break;
+    }
+    if ((ctrl & SMMU_ROOT_TLBI_CTRL_BUSY_MASK) != 0u) {
+        ERROR("\n      timed out waiting for ROOT_TLBI_CTRL completion     ");
+        return 1;
+    }
+
+    return 0;
 }
 
 static void smmu_strtab_write_ste(smmu_master_t *master, uint64_t *ste, smmu_dev_t *smmu)
@@ -537,7 +592,7 @@ static uint32_t smmu_strtab_init(smmu_dev_t *smmu)
 int32_t smmu_reg_write_sync(smmu_dev_t *smmu, uint32_t val,
                    uint32_t reg_off, uint32_t ack_off)
 {
-    uint64_t timeout = 0x1000000;
+    uint64_t timeout = SMMU_REG_POLL_TIMEOUT;
     uint32_t reg;
 
     val_el3_mmio_write(smmu->base + reg_off, val);
@@ -1109,11 +1164,15 @@ uint32_t val_el3_smmu_rlm_map(smmu_master_attributes_t master_attr, pgt_descript
      * Note: Remove once making all the allocated memory GPI_ANY
      */
     uint32_t root_cr0;
-  root_cr0 = val_el3_mmio_read(smmu->base + SMMU_ROOT_CR0);
-    root_cr0 &= ~0x2ul;
+    uint32_t root_cr0_orig;
+    root_cr0_orig = val_el3_mmio_read(smmu->base + SMMU_ROOT_CR0);
+    root_cr0 = root_cr0_orig & ~0x2ul;
     smmu_reg_write_sync(smmu, root_cr0, SMMU_ROOT_CR0, SMMU_ROOT_CR0_ACK);
 
     smmu_tlbi_cfgi(smmu);
+
+    /* Restore GPC enable after invalidation. */
+    smmu_reg_write_sync(smmu, root_cr0_orig, SMMU_ROOT_CR0, SMMU_ROOT_CR0_ACK);
 
     return 0;
 }
@@ -1697,6 +1756,20 @@ void val_el3_smmu_root_config_service(uint64_t arg0, uint64_t arg1, uint64_t arg
               shared_data->status_code = 1;
               shared_data->error_code = smmu_attr.smmu_index;
               const char *msg = "EL3: SMMU Realm set MECID failed";
+              int i = 0; while (msg[i] && i < sizeof(shared_data->error_msg) - 1) {
+                  shared_data->error_msg[i] = msg[i]; i++;
+              }
+              shared_data->error_msg[i] = '\0';
+          }
+          break;
+      case SMMU_RLM_GPT_INV:
+          INFO("SMMU GPT invalidation\n");
+          memcpy((void *)&smmu_attr, (void *)arg1, sizeof(smmu_master_attributes_t));
+          if (val_el3_smmu_gpt_invalidate((smmu_master_attributes_t)smmu_attr))
+          {
+              shared_data->status_code = 1;
+              shared_data->error_code = smmu_attr.smmu_index;
+              const char *msg = "EL3: SMMU GPT invalidate failed";
               int i = 0; while (msg[i] && i < sizeof(shared_data->error_msg) - 1) {
                   shared_data->error_msg[i] = msg[i]; i++;
               }

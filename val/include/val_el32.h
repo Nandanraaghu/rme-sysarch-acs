@@ -1,5 +1,5 @@
 /** @file
- * Copyright (c) 2023-2025, Arm Limited or its affiliates. All rights reserved.
+ * Copyright (c) 2023-2026, Arm Limited or its affiliates. All rights reserved.
  * SPDX-License-Identifier : Apache-2.0
 
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,6 +37,7 @@
 #define MEC_SERVICE               0x13
 #define RME_CMO_POE               0x14
 #define RME_GET_SHARED_MEM        0x15
+#define EL3_IDE_KM                0x16
 
 /* General Defines used by tests */
 #define INIT_DATA            0x11
@@ -46,11 +47,16 @@
 #define RANDOM_DATA_4        0x33
 #define READ_DATA            0
 #define WRITE_DATA           1
+#define READ_DATA_BYTE       2
+#define WRITE_DATA_BYTE      3
 #define CLEAN_AND_INVALIDATE 0x1
 #define CLEAN                0x2
 #define INVALIDATE           0x3
 #define SET                  1
 #define CLEAR                0
+#define IDE_ENABLE           1
+#define IDE_DISABLE          2
+#define IDE_GET_BASE         3
 
 /* smmu root register configuration */
 #define SMMU_ROOT_RME_IMPL_CHK 0x1
@@ -61,12 +67,17 @@
 #define SMMU_CHECK_MEC_IMPL    0x7
 #define SMMU_GET_MECIDW        0x8
 #define SMMU_CONFIG_MECID      0x9
+#define SMMU_RLM_GPT_INV       0xA
 
 #define SMMU_R_PAGE_0_OFFSET 0x40000
 #define SMMU_R_PAGE_1_OFFSET 0x50000
 #define SMMU_ROOT_CR0        (SMMUV3_ROOT_REG_OFFSET + 0x0020)
 #define SMMU_ROOT_CR0_ACK    (SMMUV3_ROOT_REG_OFFSET + 0x0024)
 #define SMMU_ROOT_IDRO       (SMMUV3_ROOT_REG_OFFSET + 0x0000)
+#define SMMU_ROOT_TLBI       (SMMUV3_ROOT_REG_OFFSET + 0x0050)
+#define SMMU_ROOT_TLBI_CTRL  (SMMUV3_ROOT_REG_OFFSET + 0x0058)
+#define SMMU_ROOT_IDR0_RGPTM_SHIFT 2u
+#define SMMU_ROOT_IDR0_RGPTM_MASK  (1u << SMMU_ROOT_IDR0_RGPTM_SHIFT)
 
 /* WatchDog register offset */
 #define WD_IIDR_OFFSET 0xFCC
@@ -163,6 +174,11 @@ typedef struct shared_data_el32 {
   uint64_t esr_value;
   uint64_t arg0;
   uint64_t arg1;
+  uint64_t arg2;
+  uint64_t arg3;
+  uint64_t arg4;
+  uint64_t arg5;
+  uint64_t arg6;
   uint64_t num_access;
   uint64_t pas_filter_flag;
   uint64_t generic_flag;
