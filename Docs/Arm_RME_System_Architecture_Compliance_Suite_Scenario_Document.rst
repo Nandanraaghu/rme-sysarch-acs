@@ -1797,10 +1797,10 @@ Testcase checklist
 
 
 
-Out of Compliance scope rules
-=============================
+Not covered rules
+=================
 
-The following rules are out of compliance scope due to the following reasons:
+The following rules are not covered by ACS due to the following reasons:
 
 - No specific scenario possible. It is partially/fully tested as a part of other scenarios.
 - PE ACS has tested this feature using memory transaction from PE.
