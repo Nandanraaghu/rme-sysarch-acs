@@ -3,9 +3,9 @@ RME ACS Issue C.a Rule Checklist
 
 Source specification: `RME System Architecture specification <https://developer.arm.com/documentation/den0129/latest/>`_.
 
-This checklist is maintained as CSV so that GitHub can render the data directly and partners can download the same file for spreadsheet use.
+This page provides a short summary of the RME ACS Issue C.a rule checklist. The checklist itself is maintained as CSV so that GitHub can render it directly as a table and partners can download the same file for spreadsheet use.
 
-CSV source: `Arm_RME_System_ACS_Testcase_Checklist.csv <Arm_RME_System_ACS_Testcase_Checklist.csv>`_.
+Checklist source: `Arm_RME_System_ACS_Testcase_Checklist.csv <Arm_RME_System_ACS_Testcase_Checklist.csv>`_.
 
 Summary
 -------
@@ -19,10 +19,9 @@ Summary
    "Future implementation", "27"
    "Out of scope", "91"
 
-Checklist
----------
+Checklist Data
+--------------
 
-.. csv-table:: RME ACS Issue C.a Rule Checklist
-   :file: Arm_RME_System_ACS_Testcase_Checklist.csv
-   :header-rows: 1
-   :widths: 8, 14, 48, 18, 36
+Open `Arm_RME_System_ACS_Testcase_Checklist.csv <Arm_RME_System_ACS_Testcase_Checklist.csv>`_ to view the full checklist table in GitHub.
+
+To update the checklist, edit the CSV file. If rule status counts change, update the summary table on this page as well.
