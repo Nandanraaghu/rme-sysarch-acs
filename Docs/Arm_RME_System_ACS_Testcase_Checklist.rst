@@ -256,3 +256,4 @@ To update the checklist, edit the CSV file. If rule status counts change, update
    222,RGHDCB,GET_DEV_PROP_RESP returns Arm TDISP VDM device properties and register details.,Implemented,
 
 .. checklist-table-end
+
