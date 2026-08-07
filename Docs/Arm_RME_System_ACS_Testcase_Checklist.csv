@@ -221,7 +221,4 @@ Sl No,Rule ID,Rule Description,Coverage,Notes
 220,RFMHST,SET_INTERFACE_RESP returns the response header for SET_INTERFACE completion.,tdisp_rfmhst_set_interface_resp_format,
 221,RGRPDP,GET_DEV_PROP_REQ queries Arm TDISP VDM device properties.,tdisp_rgrpdp_get_dev_prop_req,
 222,RGHDCB,GET_DEV_PROP_RESP returns Arm TDISP VDM device properties and register details.,tdisp_rghdcb_get_dev_prop_resp_format,
-Summary,,Total rule IDs listed,222,
-Summary,,Covered by tests,104,
-Summary,,Planned,27,
-Summary,,Not covered,91,
+Total,,Total rule IDs listed,222,Covered by tests: 104; Planned: 27; Not covered: 91
