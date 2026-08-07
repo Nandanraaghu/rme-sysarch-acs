@@ -1797,10 +1797,10 @@ Testcase checklist
 
 
 
-Not covered rules
-=================
+Out of Compliance scope rules
+=============================
 
-The following rules are not covered by ACS due to the following reasons:
+The following rules are out of compliance scope due to the following reasons:
 
 - No specific scenario possible. It is partially/fully tested as a part of other scenarios.
 - PE ACS has tested this feature using memory transaction from PE.
@@ -1908,6 +1908,27 @@ The following rules are not covered by ACS due to the following reasons:
         RLMFSV: When RMEDA_CTL1.TDISP_EN==1, any RP debug functionality that might affect the RME security guarantee is disabled unless explicitly enabled by one of the following: An access to a write-protect register. An assertion of a debug authentication signal indicating that either RMSD external debugging or Root external debugging are enabled.
 
         RQNTYC: The PCIe segment and RIDs that are allocated to an RCiEP are either defined statically or configured using an RMSD write-protect register.
+
+    * - MEC
+      - RRQZBK: Memory-mapped data structures that store encryption contexts must reside in SMEM in the Root PAS, such as MSD SMEM.
+
+    * - CDA
+      - RZTQYT: RME-CDA coherent devices must not send DVM CHI requests.
+
+    * - CTC / Multi-chip
+      - RGZMNH: An RME system reset in a multi-chip system affects all nodes.
+
+        RHXJRC: If an RME system supports 4 MPAM PARTID spaces, the CTC interface transports the MPAM_SP[1:0] indication.
+
+        RCMMZS: Physically exposed CTC interfaces support cryptographic link encryption and integrity protection.
+
+        RVZCPW: CTC link protection provides IDE-equivalent or stronger encryption and integrity.
+
+        RMSRGY: CTC link protection is mandatory for protected PAS transactions and PAS-independent traffic such as DVM messages.
+
+        RKYCPH: Security-sensitive CTC interface registers are MSD-protected or measurable.
+
+        RLXPMB: Global multi-chip system state is established consistently across all nodes.
 
     * - Miscellaneous
       - RDFYXL: In an RME system, any access by a requester and any instruction executed by a PE is associated with a single Security state.
