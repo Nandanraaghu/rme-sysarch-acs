@@ -1913,22 +1913,22 @@ The following rules are out of compliance scope due to the following reasons:
       - RRQZBK: Memory-mapped data structures that store encryption contexts must reside in SMEM in the Root PAS, such as MSD SMEM.
 
     * - CDA
-      - RZTQYT: RME-CDA coherent devices must not send DVM CHI requests.
+      - RZTQYT: An RME-CDA coherent device is not permitted to send CHI requests with DVMOp or SnpDVMOp opcodes.
 
     * - CTC / Multi-chip
       - RGZMNH: An RME system reset in a multi-chip system affects all nodes.
 
         RHXJRC: If an RME system supports 4 MPAM PARTID spaces, the CTC interface transports the MPAM_SP[1:0] indication.
 
-        RCMMZS: Physically exposed CTC interfaces support cryptographic link encryption and integrity protection.
+        RCMMZS: A CTC interface that is vulnerable to physical attacks, for example by external probing or manipulation of traffic, supports Link protection in the form of cryptographic encryption and integrity protection.
 
-        RVZCPW: CTC link protection provides IDE-equivalent or stronger encryption and integrity.
+        RVZCPW: The security level and cryptographic strength of Link protection is equivalent to IDE [4] or better. This means that: The encryption algorithm and cryptographic parameter sizes (MAC, IV, Key) are as supported by IDE or better. There is encryption of at least the payload data of transmitted packets. There is integrity protection against corruption, drop, replay, and reorder of packets.
 
-        RMSRGY: CTC link protection is mandatory for protected PAS transactions and PAS-independent traffic such as DVM messages.
+        RMSRGY: Link protection is mandatory for both: Transactions associated with a PA in the Root, Realm and Secure physical address spaces. Transactions not associated with a physical address space, for example DVM messages.
 
-        RKYCPH: Security-sensitive CTC interface registers are MSD-protected or measurable.
+        RKYCPH: The following CTC interface registers are implemented as MSD-Protected registers or as measurable registers: CTC programming registers that allow reading or modifying transaction parameters such as packet address or data, or that could cause corruption, drop, replay, or reorder of packets, either: Before Link protection is applied (for outgoing traffic). After the Link protection check (for incoming traffic). CTC programming registers that control Link protection context and properties, for example key programming registers and enable bits.
 
-        RLXPMB: Global multi-chip system state is established consistently across all nodes.
+        RLXPMB: Establishing a global system state complies with all the following: If a Debug Authentication Interface signal is enabled for one node, it is enabled for the system. The lifecycle state of the system is set to Secure only if it is Secure for all nodes. For memory-mapped Resources, the value of the PA through which a Resource can be reached is the same across all nodes. All nodes observe the same GPT information at any level of the GPT.
 
     * - Miscellaneous
       - RDFYXL: In an RME system, any access by a requester and any instruction executed by a PE is associated with a single Security state.
