@@ -1,29 +1,29 @@
 Sl No,Rule ID,Rule Description,Coverage,Notes
 1,RDFYXL,"In an RME system, any access by a requester and any instruction executed by a PE is associated with a single Security state.",Not covered,Broad architectural invariant; ACS validates observable access behavior in other tests.
 2,RQDWVC,Association of a Resource with a Resource PAS is controlled by either SSD or MSD.,Not covered,Resource ownership control is SSD/MSD policy and implementation-specific.
-3,RBJVZS,Resource accesses carry an Access PAS and MECID as required by the architecture.,mec_support_mecid_and_mecid_width,
-,,,rme_pas_filter_functionality,
+3,RBJVZS,Resource accesses carry an Access PAS and MECID as required by the architecture.,"mec_support_mecid_and_mecid_width
+rme_pas_filter_functionality",
 4,RYXFMV,Requesters outside MMU/SMMU translation are SSD-tagged with an Access PAS.,Not covered,Requires DAP/debug-access support to generate and tag non-MMU/SMMU requests.
 5,RSCDLL,"Once assigned, the value of an Access PAS cannot be altered.",Not covered,Access PAS tag mutation is internal behavior and not directly observable by ACS.
 6,RYKVJK,A PAS filter enforces the PAS protection check by permitting access to a Resource only if the Access PAS matches a Resource PAS associated with that Resource.,rme_pas_filter_functionality,
 7,RMZJXC,Every requester in the system is subjected to the PAS protection check.,rme_pcie_devices_support_gpc,
 8,RWRGTF,Access to the Root PAS is only permitted for Trusted requesters.,Not covered,Trusted requester access policy is not generically observable by ACS.
-9,RKGDVK,GPT-based PAS assignment requires a single PA per PAS and page-granular resources.,rme_resources_aligned_to_granularity,
-,,,rme_resources_are_not_physically_aliased,
+9,RKGDVK,GPT-based PAS assignment requires a single PA per PAS and page-granular resources.,"rme_resources_aligned_to_granularity
+rme_resources_are_not_physically_aliased",
 10,RWJNMD,On-chip Resource GPC relies only on GPT storage with equivalent integrity and replay protection.,Not covered,"GPT storage location, integrity, and replay protection are implementation details."
 11,RGQCQT,GPC-protected non-idempotent accesses are not speculatively performed before the check completes.,Not covered,Non-idempotent speculation behavior is not directly software-observable.
 12,RGFGZM,"If a requester-side Granular PAS filter is in reset state, any requester that is associated with it is either in reset state or blocked from accessing memory.",rme_smmu_blocks_request_at_registers_reset,
-13,RWFQKD,A PA that targets memory that can be cached is associated with a PAS until reaching the PoPA.,rme_memory_associated_with_pas_till_popa,
-,,,rme_snoop_filter_considers_pas,
-14,RFRMJJ,"Where a PA is associated with a PAS, any PA compare operation includes the PAS.",rme_memory_associated_with_pas_till_popa,
-,,,rme_snoop_filter_considers_pas,
-15,RQBNJF,"A PoPA CMO affects all cached copies for the specified {PAS, PA}, independent of shareability domain or MECID.",mec_effect_of_popa_cmo,
-,,,rme_cmo_popa_for_cacheability_shareability,
+13,RWFQKD,A PA that targets memory that can be cached is associated with a PAS until reaching the PoPA.,"rme_memory_associated_with_pas_till_popa
+rme_snoop_filter_considers_pas",
+14,RFRMJJ,"Where a PA is associated with a PAS, any PA compare operation includes the PAS.","rme_memory_associated_with_pas_till_popa
+rme_snoop_filter_considers_pas",
+15,RQBNJF,"A PoPA CMO affects all cached copies for the specified {PAS, PA}, independent of shareability domain or MECID.","mec_effect_of_popa_cmo
+rme_cmo_popa_for_cacheability_shareability",
 16,RTRBZM,An access to a cacheable memory Location is associated with a MECID until reaching the PoE.,mec_mecid_assosiation_and_encryption,
 17,RKMNQX,"Memory accesses resulting from a cache Clean operation, due to cache maintenance operations and natural evictions, use the MECID that the entry was cached with.",mec_cmo_uses_correct_mecid,
-18,RMLFBL,"External Secure, Realm, and Root memory is encrypted with distinct contexts and address tweaks.",mec_mecid_assosiation_and_encryption,
-,,,rme_data_encryption_beyond_popa,
-,,,rme_data_encryption_with_different_tweak,
+18,RMLFBL,"External Secure, Realm, and Root memory is encrypted with distinct contexts and address tweaks.","mec_mecid_assosiation_and_encryption
+rme_data_encryption_beyond_popa
+rme_data_encryption_with_different_tweak",
 19,RMYWVB,Data is encrypted before being written to external memory or to any shared cache that resides past the PoPA.,mec_mecid_assosiation_and_encryption,
 20,RRQZBK,"Memory-mapped data structures that store encryption contexts must reside in SMEM in the Root PAS, such as MSD SMEM.",Not covered,MEC encryption-context storage is not generically discoverable by ACS.
 21,RBNSQB,ECC-scrubbing engines beyond PoPA must not leak confidential information.,Not covered,ECC scrubber behavior depends on implementation-specific RAS logic.
@@ -34,20 +34,20 @@ Sl No,Rule ID,Rule Description,Coverage,Notes
 26,RRGQRT,Programmable all-PAS completer filters keep controls in Root PAS and reset safely.,Not covered,Completer-side PAS filter controls are implementation-defined.
 27,RGLLZY,Secure/Non-secure completer filters keep controls in Secure or Root PAS and reset safely.,Not covered,Completer-side PAS filter controls are implementation-defined.
 28,RWBJJT,TSM functionality in RME-DA is implemented within RMSD.,Not covered,TSM/RMM software presence is outside hardware ACS scope.
-29,RQRMPD,Realm-assigned TDI translated accesses are subject to DPT checks unless exempted.,dpt_p2p_different_rootport_invalid,
-,,,dpt_p2p_different_rootport_valid,
-,,,dpt_p2p_same_rootport_invalid,
-,,,dpt_p2p_same_rootport_valid,
-,,,dpt_system_resource_invalid,
-,,,dpt_system_resource_valid_with_dpti,
-,,,dpt_system_resource_valid_without_dpti,
-30,RPGSTQ,Measured integrated TDISP devices may skip DPT checks but not GPC.,dpt_system_resource_valid_without_dpti,
-,,,dpt_system_resource_valid_with_dpti,
-,,,dpt_system_resource_invalid,
-,,,dpt_p2p_same_rootport_valid,
-,,,dpt_p2p_same_rootport_invalid,
-,,,dpt_p2p_different_rootport_valid,
-,,,dpt_p2p_different_rootport_invalid,
+29,RQRMPD,Realm-assigned TDI translated accesses are subject to DPT checks unless exempted.,"dpt_p2p_different_rootport_invalid
+dpt_p2p_different_rootport_valid
+dpt_p2p_same_rootport_invalid
+dpt_p2p_same_rootport_valid
+dpt_system_resource_invalid
+dpt_system_resource_valid_with_dpti
+dpt_system_resource_valid_without_dpti",
+30,RPGSTQ,Measured integrated TDISP devices may skip DPT checks but not GPC.,"dpt_system_resource_valid_without_dpti
+dpt_system_resource_valid_with_dpti
+dpt_system_resource_invalid
+dpt_p2p_same_rootport_valid
+dpt_p2p_same_rootport_invalid
+dpt_p2p_different_rootport_valid
+dpt_p2p_different_rootport_invalid",
 31,RSHRMN,RME-DA coherent links attach only permitted coherent devices and cover attestation-relevant logic.,Planned,
 32,RNVWMC,"RME-CDA coherent devices support compliant TDI assignment, encryption, MEC, and coherency behavior.",Planned,
 33,RQWNBN,A TDI in TDISP ERROR state poisons relevant Realm cached data and snoop responses.,Planned,
@@ -76,18 +76,18 @@ Sl No,Rule ID,Rule Description,Coverage,Notes
 56,RZTQYT,RME-CDA coherent devices must not send DVM CHI requests.,Not covered,Requires CHI/C2C opcode trace visibility; ACS cannot prove absence from software.
 57,RDRVTK,Device-to-host traffic uses only MECIDs permitted for the device.,Planned,
 58,RJSDVG,All structures and fields defined by this specification use little-endian convention.,cxl_rjsdvg_little_endian,
-59,RCSSDG,MSD SMEM is in the Root PAS.,rme_msd_smem_in_root_after_reset,
-,,,rme_msd_smem_in_root_pas,
+59,RCSSDG,MSD SMEM is in the Root PAS.,"rme_msd_smem_in_root_after_reset
+rme_msd_smem_in_root_pas",
 60,RSPLKT,The address ranges of MSD SMEM are either defined statically or defined by SSD following an RME system reset.,Not covered,MSD SMEM address definition is platform/SSD policy.
 61,RNXJLB,On an RME system reset MSD SMEM is either immediately assigned to the Root PAS or scrubbed and is available for access by the PE boot ROM as soon as it starts executing.,rme_msd_smem_in_root_pas,
 62,RCMMCZ,RMSD SMEM is in the Realm PAS.,rme_realm_smem_in_realm_pas,
 63,RZVQGS,The address ranges of SMEM assigned to the Realm PAS and Secure PAS are either defined statically or by SSD or MSD.,Not covered,SMEM address definition is platform/SSD/MSD policy.
-64,RZQQSQ,SMEM that can be dynamically assigned to the Realm PAS or the Secure PAS is either immediately assigned to the Root PAS or scrubbed on an RME system reset.,rme_realm_smem_behaviour_after_reset,
-,,,rme_realm_smem_in_realm_pas,
+64,RZQQSQ,SMEM that can be dynamically assigned to the Realm PAS or the Secure PAS is either immediately assigned to the Root PAS or scrubbed on an RME system reset.,"rme_realm_smem_behaviour_after_reset
+rme_realm_smem_in_realm_pas",
 65,RZCJHY,The access control path that protects SMEM is not affected by state from non-shielded memory.,Not covered,SMEM protection path details are implementation-specific.
 66,RGSRPS,All A-profile application PEs in the system implement the Realm Management Extension (RME).,rme_support_in_pe,
-67,RNJRPC,"An SMMU in an RME system complies with SMMU for RME [3] and, if the system supports RME-DA or MEC, with SMMU for RME-DA.",da_smmu_implementation,
-,,,smmu_implements_rme,
+67,RNJRPC,"An SMMU in an RME system complies with SMMU for RME [3] and, if the system supports RME-DA or MEC, with SMMU for RME-DA.","da_smmu_implementation
+smmu_implements_rme",
 68,RPXDQJ,"In a system that supports RME-DA, any access from a TDISP-compliant device is subject to SMMU translation.",Planned,
 69,RXBKYB,All bus and interconnect decoding components between the point where the Access PAS is assigned and the PoPA are PAS tag-aware.,Not covered,Bus/interconnect PAS-awareness is covered indirectly by access behavior.
 70,RXTSXB,An RME coherent interconnect supports cache maintenance operations to the PoPA in compliance with the Arm A-profile architecture [1].,rme_coherent_interconnect_supports_cmo_popa,
@@ -114,8 +114,8 @@ Sl No,Rule ID,Rule Description,Coverage,Notes
 91,RVCRRM,An RME-DA RP must support IDE key refresh operations in compliance with [4].,Not covered,IDE key refresh requires implementation-specific software support.
 92,RFSFST,RP IDE logic detects when an IDE key set requires refresh and either signals Trusted firmware or makes the stream Insecure.,Not covered,IDE key refresh detection is implementation-defined and not software-observable.
 93,RBWFTS,RMSD ensures that Selective IDE Streams are configured such that different streams are assigned RID ranges and address ranges that do not overlap.,Not covered,"IDE stream range allocation is RMSD/RMM policy, not generic ACS behavior."
-94,RDVJRV,The RME-DA DVSEC implements the required PCIe register layout.,da_attribute_rmeda_ctl_registers,
-,,,da_dvsec_register_config,
+94,RDVJRV,The RME-DA DVSEC implements the required PCIe register layout.,"da_attribute_rmeda_ctl_registers
+da_dvsec_register_config",
 95,RXHMDQ,"When TDISP is enabled, security-sensitive RP registers are RMSD write-protect.",da_rootport_write_protect_full_protect_property,
 96,RNXJKQ,"When TDISP is enabled, IDE keys, confidential state, and protected payload registers are RMSD full-protect.",da_rootport_write_protect_full_protect_property,
 97,RPCRFM,"When TDISP is enabled, protected RP configuration registers are RMSD write-detect.",da_rmsd_write_detect_property,
@@ -124,15 +124,15 @@ Sl No,Rule ID,Rule Description,Coverage,Notes
 100,RNPGJV,The RMEDA_CTL registers are RMSD write-protect by hardware default.,da_ctl_regs_rmsd_write_protect_property,
 101,RNWSJB,All RPs in an RME-DA system must implement the RME-DA DVSEC.,da_dvsec_register_config,
 102,RYHQQL,Selective IDE register-block lock state controls register protection and stream lock state.,da_selective_ide_register_property,
-103,RGKHSZ,RME-DA Root Ports associate outgoing TLPs with IDE streams and set T-bit/XT-bit correctly.,da_incoming_request_ide_sec_locked,
-,,,da_rootport_tdisp_disabled,
-104,RCFQBW,An RME-DA RP sets the IDE T-bit for an outgoing PCIe Memory Request or Configuration Request based on the request PAS.,da_ide_tbit_0_for_root_request,
-,,,da_outgoing_realm_rqst_ide_tbit_1,
+103,RGKHSZ,RME-DA Root Ports associate outgoing TLPs with IDE streams and set T-bit/XT-bit correctly.,"da_incoming_request_ide_sec_locked
+da_rootport_tdisp_disabled",
+104,RCFQBW,An RME-DA RP sets the IDE T-bit for an outgoing PCIe Memory Request or Configuration Request based on the request PAS.,"da_ide_tbit_0_for_root_request
+da_outgoing_realm_rqst_ide_tbit_1",
 105,RSWBSV,"Root Ports set the IDE T-bit on PCIe messages according to DTI, VDM, and message type.",Not covered,PCIe message IDE T-bit requires packet visibility not available to ACS.
 106,RCKJMN,PCIe completions set IDE T-bit according to IDE and TDISP rules.,Not covered,PCIe completion IDE T-bit is not software-observable in generic ACS.
 107,RDVKPF,Protected outgoing T-bit/XT-bit requests are rejected unless bound to a locked Secure IDE stream.,da_outgoing_request_with_ide_tbit,
-108,RKZBHV,"With TDISP enabled, Root Ports allow protected incoming T-bit/XT-bit requests only when permitted.",da_incoming_request_ide_non_sec_unlocked,
-,,,da_incoming_request_ide_sec_locked,
+108,RKZBHV,"With TDISP enabled, Root Ports allow protected incoming T-bit/XT-bit requests only when permitted.","da_incoming_request_ide_non_sec_unlocked
+da_incoming_request_ide_sec_locked",
 109,RMYKFH,"Root Ports map incoming requests to SMMU SEC_SID, StreamID, and SubstreamID correctly.",da_incoming_request_ide_sec_locked,
 110,RMDPKR,Root Complex P2P completions are returned only from the intended target peer.,da_p2p_btw_2_tdisp_devices,
 111,RLMFSV,TDISP-enabled Root Port debug features are disabled unless explicitly authorized.,Not covered,Root Port debug functionality is implementation-defined.
@@ -141,10 +141,10 @@ Sl No,Rule ID,Rule Description,Coverage,Notes
 114,RPJGJK,Root Ports poison affected TLPs or transition IDE streams to Insecure on integrity errors.,da_ide_state_rootport_error,
 115,RMJSFF,"An RME system must not include an SMMU that supports the XT extensions, unless all RPs either support the XT extensions or override the XT-bit to 0 for incoming requests.",Planned,
 116,RJXRNG,TDISP XT-capable Root Ports set XT-bit behavior according to XT enablement and traffic type.,Planned,
-117,RGBVTS,"As a completer of memory requests, a TDISP-compliant RCiEP extracts the request IDE T-bit from the request PAS.",da_ide_tbit_0_for_root_request,
-,,,da_outgoing_realm_rqst_ide_tbit_1,
-118,RZJJMZ,"RCiEP requesters set SEC_SID, StreamID, and SubstreamID according to T-bit and requester identity.",da_incoming_request_ide_non_sec_unlocked,
-,,,da_incoming_request_ide_sec_locked,
+117,RGBVTS,"As a completer of memory requests, a TDISP-compliant RCiEP extracts the request IDE T-bit from the request PAS.","da_ide_tbit_0_for_root_request
+da_outgoing_realm_rqst_ide_tbit_1",
+118,RZJJMZ,"RCiEP requesters set SEC_SID, StreamID, and SubstreamID according to T-bit and requester identity.","da_incoming_request_ide_non_sec_unlocked
+da_incoming_request_ide_sec_locked",
 119,RQNTYC,The PCIe segment and RIDs that are allocated to an RCiEP are either defined statically or configured using an RMSD write-protect register.,Not covered,PCIe segment/RID ownership is static or RMSD-protected and not generically modifiable.
 120,RGBGQX,Exposed CTC coherent links support cryptographic encryption and integrity protection.,cxl_rgbgqx_ctc_link_ide,
 121,RDFWKW,A coherent host port that supports RME-CDA implements the Coherent RME-DA DVSEC (RME-CDA DVSEC).,cxl_rplykv_rdfwkw_rme_cda_dvsec,
@@ -175,8 +175,8 @@ Sl No,Rule ID,Rule Description,Coverage,Notes
 146,RQCHPW,The system supports a method for permanently blocking write access from application PEs to all RNVS parameters.,rme_rnvs_in_root_pas,
 147,RLMSSL,The system supports a method for permanently blocking read access from application PEs to RNVS confidential parameters.,Not covered,RNVS controls and reported properties are implementation-defined.
 148,RVXBYG,System support for any memory protection property reported in System Properties is immutable and applicable for all DRAM memory controllers in the system.,Not covered,RNVS controls and reported properties are implementation-defined.
-149,RZHBBL,The memory-mapped registers of a Root watchdog are in the Root PAS.,rme_root_wdog_fails_in_non_root_state,
-,,,rme_root_wdog_from_root_pas,
+149,RZHBBL,The memory-mapped registers of a Root watchdog are in the Root PAS.,"rme_root_wdog_fails_in_non_root_state
+rme_root_wdog_from_root_pas",
 150,RVXGBP,A Root watchdog is capable of triggering an RME system reset when predefined expiration conditions are met.,rme_root_wdog_fails_in_non_root_state,
 151,RQYRGG,MSD and RMSD are provided with a private interface for accessing a True Random Number Generator (TRNG) that meets the certification profile of the system.,rme_all_pe_has_feat_rng_or_rng_trap,
 152,RNWQBJ,Tenant-hosted HES is isolated from other tenants in the Trusted subsystem.,Not covered,HES may be implemented in non-A-profile trusted hardware.
@@ -214,8 +214,8 @@ Sl No,Rule ID,Rule Description,Coverage,Notes
 184,RRCLYM,Secure PE context save/restore uses authorized agents and storage hidden from Realm and Non-secure states.,Not covered,Secure PE context save/restore path is firmware/platform specific.
 185,RGVJYZ,Power-policy or hardware-mode registers are MPRs or otherwise SSD-constrained.,Not covered,Power-policy registers are implementation-defined.
 186,RKYXMR,Any power management operation that can affect MSD state or the RME security guarantee must be validated by MSD or a Trusted subsystem.,Not covered,Power-management validation is platform/firmware policy.
-187,RMLJVR,"On an exit from a low power state in which system context is preserved, power control guarantees that MSD state is fully preserved.",rme_pe_context_after_exit_wfi,
-,,,rme_pe_context_after_pe_suspend,
+187,RMLJVR,"On an exit from a low power state in which system context is preserved, power control guarantees that MSD state is fully preserved.","rme_pe_context_after_exit_wfi
+rme_pe_context_after_pe_suspend",
 188,RZNLSZ,"Save/Restore operations for MSD state can only be done by MSD or a Trusted subsystem and use on-chip storage that is not accessible from Realm PAS, Secure PAS or Non-secure PAS.",rme_msd_save_restore_mem_in_root_pas,
 189,RDQTSG,An MPE or a PAS filter in a non-ACTIVE mode in which context is not fully retained blocks its operation and does not service requests until it is in ACTIVE mode again.,rme_pas_filter_in_inactive_mode,
 190,RJDBCS,"An MMU-attached PAS filter in a non-ACTIVE mode either continues to respond to GPT cache invalidations, or invalidates any cached state when moving back to ACTIVE mode.",smmu_responds_to_gpt_tlb,
@@ -229,8 +229,8 @@ Sl No,Rule ID,Rule Description,Coverage,Notes
 198,RKKSQB,"An RME system reset propagates to PEs as either a Cold reset, Warm reset, or Error recovery reset.",rme_system_reset_propagation_to_all_pe,
 199,RHLKZP,An RME system reset might propagate to any component that implements RAS [12] as an Error recovery reset.,Not covered,RAS error-recovery reset propagation is implementation-specific.
 200,RSSGMJ,"The reset of a system component that affects the RME security guarantee can only be controlled by MSD or a Trusted subsystem, or driven by an RME system reset.",Not covered,Security-affecting reset controls are implementation/platform specific.
-201,RKQLKN,LEGACY_TZ_EN is not permitted to change value after RME system reset has been deasserted.,legacy_tz_enable_after_reset,
-,,,legacy_tz_enable_before_reset,
+201,RKQLKN,LEGACY_TZ_EN is not permitted to change value after RME system reset has been deasserted.,"legacy_tz_enable_after_reset
+legacy_tz_enable_before_reset",
 202,RKXMHF,"A system that contains RME components, that have the LEGACY_TZ_EN input, will drive a common tie-off input value into all components.",legacy_tz_support_check,
 203,RHCGZN,"If LEGACY_TZ_EN is TRUE, PAS[1] is driven to 0b0 by any logic that enforces Table",legacy_tz_en_drives_root_to_secure,
 204,RCLKXF,A PE that supports the LEGACY_TZ_EN tie-off hides the RME capability if LEGACY_TZ_EN is TRUE and reverts all functionality defined by RME.,legacy_tz_support_check,
